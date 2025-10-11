@@ -53,6 +53,9 @@ import {
 export default function SugoApp() {
   const [currentScreen, setCurrentScreen] = useState("splash");
   const [userType, setUserType] = useState("customer");
+  const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otpTimer, setOtpTimer] = useState(300); // 5 minutes in seconds
   const [showChat, setShowChat] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
@@ -518,68 +521,100 @@ export default function SugoApp() {
 
   // Splash Screen
   const SplashScreen = () => (
-    <div className="max-w-md mx-auto min-h-screen bg-gradient-to-br from-red-500 via-red-600 to-red-700 flex flex-col items-center justify-center">
-      <div className="animate-bounce">
-        <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-2xl mb-6">
-          <Package className="w-16 h-16 text-red-600" />
+    <div className="max-w-md mx-auto min-h-screen bg-white flex flex-col items-center justify-center">
+      {/* Logo */}
+      <div className="mb-12">
+        <div className="w-32 h-32 mx-auto mb-6">
+          <img 
+            src="/image.png" 
+            alt="Sugo Logo" 
+            className="w-full h-full object-contain"
+          />
         </div>
       </div>
-      <h1 className="text-6xl font-bold text-white mb-2 animate-pulse">SUGO</h1>
-      <p className="text-red-100 text-lg">Fast & Reliable Delivery</p>
-      <div className="mt-12 flex space-x-2">
-        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-        <div
-          className="w-2 h-2 bg-white rounded-full animate-pulse"
-          style={{ animationDelay: "0.2s" }}
-        ></div>
-        <div
-          className="w-2 h-2 bg-white rounded-full animate-pulse"
-          style={{ animationDelay: "0.4s" }}
-        ></div>
+
+      {/* App Name */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-gray-800 mb-3">SUGO</h1>
+        <p className="text-gray-500 text-lg">Fast & Reliable Delivery</p>
+      </div>
+
+      {/* Simple Loading */}
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce"></div>
+        <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+        <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
       </div>
     </div>
   );
 
   // Login Screen
   const LoginScreen = () => (
-    <div className="max-w-md mx-auto min-h-screen bg-gradient-to-br from-red-500 to-red-700 flex flex-col items-center justify-center p-6">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
+    <div className="max-w-md mx-auto min-h-screen bg-white flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Package className="w-10 h-10 text-red-600" />
+          <div className="w-32 h-32 mx-auto mb-4">
+            <img 
+              src="/image.png" 
+              alt="Sugo Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
-          <h1 className="text-5xl font-bold text-red-600 mb-2">SUGO</h1>
-          <p className="text-gray-500">Welcome back!</p>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Log in with Phone Number</h1>
         </div>
         
-        <div className="space-y-4">
-          <input
-            type="tel"
-            placeholder="Phone Number"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
-          />
-          <button 
-            onClick={() => setCurrentScreen("dashboard")}
-            className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition"
-          >
-            Login
-          </button>
+        {/* Phone Number Input */}
+        <div className="mb-4">
+          <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+            <div className="flex items-center px-3 py-3 border-r border-gray-300">
+              <img 
+                src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDBDOC42ODYyOSAwIDYgMi42ODYyOSA2IDZDOCA4LjMxMzcxIDguNjg2MjkgMTEgMTIgMTFDMTUuMzEzNyAxMSAxOCA4LjMxMzcxIDE4IDZDMThDMi42ODYyOSAxOCAwIDE1LjMxMzcgMCAxMloiIGZpbGw9IiNGRjAwMDAiLz4KPHBhdGggZD0iTTEyIDNDOS43OTA4NiAzIDggNC43OTA4NiA4IDdDOCA5LjIwOTE0IDkuNzkwODYgMTEgMTIgMTFDMTQuMjA5MSAxMSAxNiA5LjIwOTE0IDE2IDdDMTYgNC43OTA4NiAxNC4yMDkxIDMgMTIgM1oiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=" 
+                alt="Philippines Flag" 
+                className="w-6 h-4 mr-2"
+              />
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </div>
+            <input
+              type="tel"
+              placeholder="+63 915 123 6121"
+              className="flex-1 px-3 py-3 border-0 focus:outline-none text-gray-800"
+            />
+          </div>
         </div>
 
-        <div className="text-center mt-6">
+        {/* Remember Me Checkbox */}
+        <div className="flex items-center mb-6">
+          <input
+            type="checkbox"
+            id="remember"
+            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+          />
+          <label htmlFor="remember" className="ml-2 text-sm text-gray-600">
+            Remember me
+          </label>
+        </div>
+
+        {/* Login Button */}
+        <button 
+          onClick={() => setCurrentScreen("home")}
+          className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition mb-6"
+        >
+          Log in
+        </button>
+
+        {/* Sign Up Link */}
+        <div className="text-center">
+          <span className="text-gray-500 text-sm">Don't have an account? </span>
           <button 
             onClick={() => setCurrentScreen("signup")}
-            className="text-red-600 font-medium"
+            className="text-red-600 font-medium text-sm hover:underline"
           >
-            Sign up with OTP →
+            Sign up
           </button>
         </div>
 
+        {/* User Type Selection */}
         <div className="flex gap-3 mt-8">
           <button
             onClick={() => setUserType("customer")}
@@ -624,71 +659,261 @@ export default function SugoApp() {
 
   // Signup Screen
   const SignupScreen = () => (
-    <div className="max-w-md mx-auto min-h-screen bg-gradient-to-br from-red-500 to-red-700 flex flex-col items-center justify-center p-6">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
+    <div className="max-w-md mx-auto min-h-screen bg-white flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
-            Create Account
-          </h2>
-          <p className="text-gray-500">Enter your details to sign up</p>
+          <div className="w-32 h-32 mx-auto mb-4">
+            <img 
+              src="/image.png" 
+              alt="Sugo Logo" 
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Create Account</h1>
+          <p className="text-gray-500 text-sm">Enter your details to sign up</p>
         </div>
         
-        <div className="space-y-4">
+        {/* Full Name Input */}
+        <div className="mb-4">
           <input
             type="text"
             placeholder="Full Name"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:outline-none text-gray-800"
           />
-          <input
-            type="tel"
-            placeholder="Phone Number"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
-          />
-          <input
-            type="email"
-            placeholder="Email Address"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
-          />
-          <button className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition">
-            Send OTP
-          </button>
         </div>
 
-        <div className="mt-6">
-          <p className="text-sm text-gray-600 text-center mb-4">
-            Enter OTP sent to your phone
-          </p>
-          <div className="flex gap-3 justify-center">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <input
-                key={i}
-                type="text"
-                maxLength={1}
-                className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+        {/* Phone Number Input */}
+        <div className="mb-4">
+          <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+            <div className="flex items-center px-3 py-3 border-r border-gray-300">
+              <img 
+                src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDBDOC42ODYyOSAwIDYgMi42ODYyOSA2IDZDOCA4LjMxMzcxIDguNjg2MjkgMTEgMTIgMTFDMTUuMzEzNyAxMSAxOCA4LjMxMzcxIDE4IDZDMThDMi42ODYyOSAxOCAwIDE1LjMxMzcgMCAxMloiIGZpbGw9IiNGRjAwMDAiLz4KPHBhdGggZD0iTTEyIDNDOS43OTA4NiAzIDggNC43OTA4NiA4IDdDOCA5LjIwOTE0IDkuNzkwODYgMTEgMTIgMTFDMTQuMjA5MSAxMSAxNiA5LjIwOTE0IDE2IDdDMTYgNC43OTA4NiAxNC4yMDkxIDMgMTIgM1oiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=" 
+                alt="Philippines Flag" 
+                className="w-6 h-4 mr-2"
               />
-            ))}
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </div>
+            <input
+              type="tel"
+              placeholder="+63 915 123 6121"
+              className="flex-1 px-3 py-3 border-0 focus:outline-none text-gray-800"
+            />
           </div>
         </div>
 
+        {/* Email Input */}
+        <div className="mb-4">
+          <input
+            type="email"
+            placeholder="Email Address"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:outline-none text-gray-800"
+          />
+        </div>
+
+        {/* Send OTP Button */}
         <button 
-          onClick={() => setCurrentScreen("dashboard")}
-          className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition mt-6"
+          onClick={() => {
+            setPhoneNumber("+63 915 123 6121"); // In real app, this would be the actual phone number
+            setCurrentScreen("otp");
+          }}
+          className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition mb-6"
         >
-          Verify & Sign Up
+          Send OTP
         </button>
 
-        <div className="text-center mt-6">
+        {/* Back to Login Link */}
+        <div className="text-center">
+          <span className="text-gray-500 text-sm">Already have an account? </span>
           <button 
             onClick={() => setCurrentScreen("login")}
-            className="text-red-600 font-medium"
+            className="text-red-600 font-medium text-sm hover:underline"
           >
-            ← Back to Login
+            Log in
           </button>
         </div>
+
+        {/* User Type Selection */}
+        <div className="flex gap-3 mt-8">
+          <button
+            onClick={() => setUserType("customer")}
+            className={`flex-1 py-2 rounded-lg font-medium transition ${userType === "customer" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-600"}`}
+          >
+            Customer
+          </button>
+          <button
+            onClick={() => setUserType("rider")}
+            className={`flex-1 py-2 rounded-lg font-medium transition ${userType === "rider" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-600"}`}
+          >
+            Worker
+          </button>
+        </div>
+
+        {userType === "rider" && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-500 mb-2">Select your service</p>
+            <div className="grid grid-cols-4 gap-2">
+              <button onClick={() => setWorkerService("delivery")} className={`p-2 rounded-lg border ${workerService === "delivery" ? "border-red-400 bg-red-50 text-red-600" : "border-gray-200 text-gray-600"}`}>
+                <Package className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-[10px]">Delivery</span>
+              </button>
+              <button onClick={() => setWorkerService("plumbing")} className={`p-2 rounded-lg border ${workerService === "plumbing" ? "border-blue-400 bg-blue-50 text-blue-600" : "border-gray-200 text-gray-600"}`}>
+                <Wrench className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-[10px]">Plumbing</span>
+              </button>
+              <button onClick={() => setWorkerService("aircon")} className={`p-2 rounded-lg border ${workerService === "aircon" ? "border-teal-400 bg-teal-50 text-teal-600" : "border-gray-200 text-gray-600"}`}>
+                <Wind className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-[10px]">Aircon</span>
+              </button>
+              <button onClick={() => setWorkerService("electrician")} className={`p-2 rounded-lg border ${workerService === "electrician" ? "border-amber-400 bg-amber-50 text-amber-600" : "border-gray-200 text-gray-600"}`}>
+                <PlugZap className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-[10px]">Electrician</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 
+  // OTP Verification Screen
+  const OTPScreen = () => {
+    const [timeLeft, setTimeLeft] = useState(otpTimer);
+
+    // Timer effect
+    useEffect(() => {
+      if (timeLeft > 0) {
+        const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+        return () => clearTimeout(timer);
+      }
+    }, [timeLeft]);
+
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const handleOtpChange = (index: number, value: string) => {
+      if (value.length > 1) return; // Prevent multiple characters
+      
+      const newOtp = [...otpCode];
+      newOtp[index] = value;
+      setOtpCode(newOtp);
+
+      // Auto-focus next input
+      if (value && index < 5) {
+        const nextInput = document.getElementById(`otp-${index + 1}`);
+        nextInput?.focus();
+      }
+    };
+
+    const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+      if (e.key === "Backspace" && !otpCode[index] && index > 0) {
+        const prevInput = document.getElementById(`otp-${index - 1}`);
+        prevInput?.focus();
+      }
+    };
+
+    const handleVerifyOTP = () => {
+      const otp = otpCode.join("");
+      if (otp.length === 6) {
+        showToastMessage("OTP verified successfully!", "success");
+        setCurrentScreen("home");
+      } else {
+        showToastMessage("Please enter the complete OTP", "error");
+      }
+    };
+
+    const handleResendOTP = () => {
+      setOtpCode(["", "", "", "", "", ""]);
+      setTimeLeft(otpTimer);
+      showToastMessage("OTP resent to your phone", "success");
+    };
+
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-white flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="w-32 h-32 mx-auto mb-4">
+              <img 
+                src="/image.png" 
+                alt="Sugo Logo" 
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Verify Phone Number</h1>
+            <p className="text-gray-500 text-sm">
+              Enter the 6-digit code sent to<br />
+              <span className="font-medium text-gray-800">{phoneNumber || "+63 915 123 6121"}</span>
+            </p>
+          </div>
+
+          {/* OTP Input Fields */}
+          <div className="mb-8">
+            <div className="flex gap-3 justify-center">
+              {otpCode.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-${index}`}
+                  type="text"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Verify Button */}
+          <button 
+            onClick={handleVerifyOTP}
+            className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition mb-6"
+          >
+            Verify OTP
+          </button>
+
+          {/* Resend OTP */}
+          <div className="text-center mb-6">
+            <span className="text-gray-500 text-sm">Didn't receive the code? </span>
+            <button 
+              onClick={handleResendOTP}
+              disabled={timeLeft > 0}
+              className={`font-medium text-sm ${
+                timeLeft > 0 
+                  ? "text-gray-400 cursor-not-allowed" 
+                  : "text-red-600 hover:underline"
+              }`}
+            >
+              {timeLeft > 0 ? `Resend in ${formatTime(timeLeft)}` : "Resend OTP"}
+            </button>
+          </div>
+
+          {/* Back to Signup */}
+          <div className="text-center">
+            <button 
+              onClick={() => setCurrentScreen("signup")}
+              className="text-gray-500 text-sm hover:text-gray-700 flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Sign Up
+            </button>
+          </div>
+
+          {/* Timer */}
+          <div className="text-center mt-6">
+            <div className="inline-flex items-center gap-2 text-sm text-gray-500">
+              <Clock className="w-4 h-4" />
+              <span>Code expires in {formatTime(timeLeft)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Loading Screen
   const LoadingScreen = () => (
@@ -1314,42 +1539,909 @@ export default function SugoApp() {
   );
 
   // Search Modal
-  const SearchModal = () => (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex-1 relative">
+  const SearchModal = () => {
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [recentSearches, setRecentSearches] = useState<string[]>([
+      "SM City Cebu", "IT Park", "Ayala Center", "Robinsons Fuente"
+    ]);
+
+    // Sample data for search
+    const searchableData = [
+      { id: 1, type: "order", title: "Order #12345", subtitle: "SM City Cebu - IT Park", status: "In Progress" },
+      { id: 2, type: "order", title: "Order #12346", subtitle: "Ayala Center - Robinsons Fuente", status: "Completed" },
+      { id: 3, type: "rider", title: "Juan Dela Cruz", subtitle: "Available - Delivery", status: "Online" },
+      { id: 4, type: "rider", title: "Maria Santos", subtitle: "Available - Plumbing", status: "Online" },
+      { id: 5, type: "location", title: "SM City Cebu", subtitle: "Cebu City, Philippines", status: "Popular" },
+      { id: 6, type: "location", title: "IT Park", subtitle: "Cebu City, Philippines", status: "Popular" },
+    ];
+
+    const handleSearch = (query: string) => {
+      if (!query.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      const results = searchableData.filter(item =>
+        item.title.toLowerCase().includes(query.toLowerCase()) ||
+        item.subtitle.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(results);
+    };
+
+    const handleSearchSelect = (item: any) => {
+      // Add to recent searches
+      if (!recentSearches.includes(item.title)) {
+        setRecentSearches(prev => [item.title, ...prev.slice(0, 4)]);
+      }
+      
+      // Handle different types of selections
+      if (item.type === "order") {
+        setCurrentScreen("orders");
+      } else if (item.type === "rider") {
+        // Could navigate to rider profile or start chat
+        setShowSearch(false);
+      } else if (item.type === "location") {
+        // Could set as pickup or delivery location
+        setShowSearch(false);
+      }
+      
+      setShowSearch(false);
+    };
+
+    useEffect(() => {
+      handleSearch(searchQuery);
+    }, [searchQuery]);
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex-1 relative">
+              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search orders, riders, or locations..."
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+                autoFocus
+              />
+            </div>
+            <button
+              onClick={() => setShowSearch(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {searchQuery.trim() ? (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-800">Search Results</h4>
+                {searchResults.length > 0 ? (
+                  searchResults.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSearchSelect(item)}
+                      className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          item.type === "order" ? "bg-blue-500" :
+                          item.type === "rider" ? "bg-green-500" :
+                          "bg-purple-500"
+                        }`} />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-800">{item.title}</div>
+                          <div className="text-sm text-gray-600">{item.subtitle}</div>
+                        </div>
+                        <div className={`text-xs px-2 py-1 rounded-full ${
+                          item.status === "In Progress" ? "bg-yellow-100 text-yellow-800" :
+                          item.status === "Completed" ? "bg-green-100 text-green-800" :
+                          item.status === "Online" ? "bg-green-100 text-green-800" :
+                          "bg-blue-100 text-blue-800"
+                        }`}>
+                          {item.status}
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No results found for "{searchQuery}"</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-800">Recent Searches</h4>
+                {recentSearches.map((search, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSearchQuery(search)}
+                    className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    <span className="text-sm text-gray-700">{search}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Filter Modal
+  const FilterModal = () => {
+    const [tempFilterOptions, setTempFilterOptions] = useState(filterOptions);
+
+    const handleApplyFilters = () => {
+      setFilterOptions(tempFilterOptions);
+      setShowFilter(false);
+      showToastMessage("Filters applied successfully!", "success");
+    };
+
+    const handleResetFilters = () => {
+      setTempFilterOptions({
+        dateRange: "all",
+        status: "all",
+        service: "all",
+        priceRange: "all",
+      });
+    };
+
+    const handleClearFilters = () => {
+      setFilterOptions({
+        dateRange: "all",
+        status: "all",
+        service: "all",
+        priceRange: "all",
+      });
+      setShowFilter(false);
+      showToastMessage("Filters cleared!", "success");
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-800">Filter Options</h3>
+            <button
+              onClick={() => setShowFilter(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-6">
+            {/* Date Range Filter */}
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3">Date Range</h4>
+              <div className="space-y-2">
+                {[
+                  { value: "all", label: "All Time" },
+                  { value: "today", label: "Today" },
+                  { value: "week", label: "This Week" },
+                  { value: "month", label: "This Month" },
+                  { value: "custom", label: "Custom Range" }
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="dateRange"
+                      value={option.value}
+                      checked={tempFilterOptions.dateRange === option.value}
+                      onChange={(e) => setTempFilterOptions(prev => ({ ...prev, dateRange: e.target.value }))}
+                      className="w-4 h-4 text-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3">Status</h4>
+              <div className="space-y-2">
+                {[
+                  { value: "all", label: "All Status" },
+                  { value: "pending", label: "Pending" },
+                  { value: "in_progress", label: "In Progress" },
+                  { value: "completed", label: "Completed" },
+                  { value: "cancelled", label: "Cancelled" }
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="status"
+                      value={option.value}
+                      checked={tempFilterOptions.status === option.value}
+                      onChange={(e) => setTempFilterOptions(prev => ({ ...prev, status: e.target.value }))}
+                      className="w-4 h-4 text-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Service Filter */}
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3">Service Type</h4>
+              <div className="space-y-2">
+                {[
+                  { value: "all", label: "All Services" },
+                  { value: "delivery", label: "Delivery" },
+                  { value: "plumbing", label: "Plumbing" },
+                  { value: "aircon", label: "Air Conditioning" },
+                  { value: "electrician", label: "Electrician" }
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="service"
+                      value={option.value}
+                      checked={tempFilterOptions.service === option.value}
+                      onChange={(e) => setTempFilterOptions(prev => ({ ...prev, service: e.target.value }))}
+                      className="w-4 h-4 text-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Price Range Filter */}
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3">Price Range</h4>
+              <div className="space-y-2">
+                {[
+                  { value: "all", label: "All Prices" },
+                  { value: "0-100", label: "₱0 - ₱100" },
+                  { value: "100-500", label: "₱100 - ₱500" },
+                  { value: "500-1000", label: "₱500 - ₱1,000" },
+                  { value: "1000+", label: "₱1,000+" }
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="priceRange"
+                      value={option.value}
+                      checked={tempFilterOptions.priceRange === option.value}
+                      onChange={(e) => setTempFilterOptions(prev => ({ ...prev, priceRange: e.target.value }))}
+                      className="w-4 h-4 text-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-6 border-t border-gray-200">
+            <button
+              onClick={handleResetFilters}
+              className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition"
+            >
+              Reset
+            </button>
+            <button
+              onClick={handleClearFilters}
+              className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition"
+            >
+              Clear All
+            </button>
+            <button
+              onClick={handleApplyFilters}
+              className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Share Modal
+  const ShareModal = () => {
+    const [shareType, setShareType] = useState<"order" | "app">("order");
+    const [shareMessage, setShareMessage] = useState("");
+
+    const shareOptions = [
+      { id: "whatsapp", name: "WhatsApp", icon: "💬", color: "bg-green-500" },
+      { id: "facebook", name: "Facebook", icon: "📘", color: "bg-blue-600" },
+      { id: "twitter", name: "Twitter", icon: "🐦", color: "bg-blue-400" },
+      { id: "instagram", name: "Instagram", icon: "📷", color: "bg-pink-500" },
+      { id: "telegram", name: "Telegram", icon: "✈️", color: "bg-blue-500" },
+      { id: "copy", name: "Copy Link", icon: "📋", color: "bg-gray-500" },
+    ];
+
+    const handleShare = (platform: string) => {
+      let shareText = "";
+      let shareUrl = "";
+
+      if (shareType === "order" && currentOrder) {
+        shareText = `Check out my delivery order #${currentOrder.id} on Sugo! ${shareMessage}`;
+        shareUrl = `https://sugo.app/order/${currentOrder.id}`;
+      } else {
+        shareText = `Download Sugo - The best delivery and service app! ${shareMessage}`;
+        shareUrl = "https://sugo.app/download";
+      }
+
+      const fullShareText = `${shareText}\n\n${shareUrl}`;
+
+      if (platform === "copy") {
+        navigator.clipboard.writeText(fullShareText);
+        showToastMessage("Link copied to clipboard!", "success");
+      } else {
+        // In a real app, you would use the respective sharing APIs
+        showToastMessage(`Sharing to ${platform}...`, "info");
+      }
+      
+      setShowShareModal(false);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-800">Share</h3>
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Share Type Toggle */}
+          <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+            <button
+              onClick={() => setShareType("order")}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${
+                shareType === "order" 
+                  ? "bg-white text-red-600 shadow-sm" 
+                  : "text-gray-600"
+              }`}
+            >
+              Share Order
+            </button>
+            <button
+              onClick={() => setShareType("app")}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${
+                shareType === "app" 
+                  ? "bg-white text-red-600 shadow-sm" 
+                  : "text-gray-600"
+              }`}
+            >
+              Share App
+            </button>
+          </div>
+
+          {/* Share Message */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Add a message (optional)
+            </label>
+            <textarea
+              value={shareMessage}
+              onChange={(e) => setShareMessage(e.target.value)}
+              placeholder="Add a personal message..."
+              className="w-full p-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Share Options */}
+          <div className="grid grid-cols-2 gap-3">
+            {shareOptions.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => handleShare(option.id)}
+                className={`flex items-center gap-3 p-4 rounded-xl text-white transition hover:opacity-90 ${option.color}`}
+              >
+                <span className="text-xl">{option.icon}</span>
+                <span className="font-medium">{option.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Preview */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+            <h4 className="font-medium text-gray-800 mb-2">Preview:</h4>
+            <p className="text-sm text-gray-600">
+              {shareType === "order" && currentOrder 
+                ? `Check out my delivery order #${currentOrder.id} on Sugo! ${shareMessage}`
+                : `Download Sugo - The best delivery and service app! ${shareMessage}`
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Image Picker Modal
+  const ImagePickerModal = () => {
+    const [selectedImages, setSelectedImages] = useState<File[]>([]);
+    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+
+    const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(event.target.files || []);
+      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+      
+      if (imageFiles.length > 0) {
+        setSelectedImages(prev => [...prev, ...imageFiles].slice(0, 5)); // Max 5 images
+        
+        // Create preview URLs
+        const newPreviewUrls = imageFiles.map(file => URL.createObjectURL(file));
+        setPreviewUrls(prev => [...prev, ...newPreviewUrls].slice(0, 5));
+      }
+    };
+
+    const handleRemoveImage = (index: number) => {
+      setSelectedImages(prev => prev.filter((_, i) => i !== index));
+      setPreviewUrls(prev => {
+        URL.revokeObjectURL(prev[index]);
+        return prev.filter((_, i) => i !== index);
+      });
+    };
+
+    const handleTakePhoto = () => {
+      // In a real app, this would open the camera
+      showToastMessage("Camera functionality would open here", "info");
+    };
+
+    const handleConfirmImages = () => {
+      if (selectedImages.length > 0) {
+        showToastMessage(`${selectedImages.length} image(s) selected!`, "success");
+        setShowImagePicker(false);
+        // In a real app, you would upload the images to a server
+      } else {
+        showToastMessage("Please select at least one image", "error");
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-800">Select Images</h3>
+            <button
+              onClick={() => setShowImagePicker(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Image Preview Grid */}
+          <div className="flex-1 overflow-y-auto mb-6">
+            {previewUrls.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {previewUrls.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-xl"
+                    />
+                    <button
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <Camera className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p>No images selected</p>
+                <p className="text-sm">Select up to 5 images</p>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <button
+                onClick={handleTakePhoto}
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition flex items-center justify-center gap-2"
+              >
+                <Camera className="w-5 h-5" />
+                Take Photo
+              </button>
+              <label className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition flex items-center justify-center gap-2 cursor-pointer">
+                <Image className="w-5 h-5" />
+                Choose Files
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            
+            <button
+              onClick={handleConfirmImages}
+              disabled={selectedImages.length === 0}
+              className="w-full py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Confirm Selection ({selectedImages.length}/5)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Document Picker Modal
+  const DocumentPickerModal = () => {
+    const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]);
+    const [documentTypes, setDocumentTypes] = useState<string[]>([]);
+
+    const handleDocumentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(event.target.files || []);
+      const documentFiles = files.filter(file => 
+        file.type.includes('pdf') || 
+        file.type.includes('document') || 
+        file.type.includes('text') ||
+        file.name.endsWith('.pdf') ||
+        file.name.endsWith('.doc') ||
+        file.name.endsWith('.docx') ||
+        file.name.endsWith('.txt')
+      );
+      
+      if (documentFiles.length > 0) {
+        setSelectedDocuments(prev => [...prev, ...documentFiles].slice(0, 10)); // Max 10 documents
+        
+        // Determine document types
+        const types = documentFiles.map(file => {
+          if (file.type.includes('pdf')) return 'PDF';
+          if (file.type.includes('document')) return 'Document';
+          if (file.type.includes('text')) return 'Text';
+          if (file.name.endsWith('.pdf')) return 'PDF';
+          if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) return 'Document';
+          return 'Other';
+        });
+        setDocumentTypes(prev => [...prev, ...types].slice(0, 10));
+      }
+    };
+
+    const handleRemoveDocument = (index: number) => {
+      setSelectedDocuments(prev => prev.filter((_, i) => i !== index));
+      setDocumentTypes(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleConfirmDocuments = () => {
+      if (selectedDocuments.length > 0) {
+        showToastMessage(`${selectedDocuments.length} document(s) selected!`, "success");
+        setShowDocumentPicker(false);
+        // In a real app, you would upload the documents to a server
+      } else {
+        showToastMessage("Please select at least one document", "error");
+      }
+    };
+
+    const getDocumentIcon = (type: string) => {
+      switch (type) {
+        case 'PDF': return '📄';
+        case 'Document': return '📝';
+        case 'Text': return '📃';
+        default: return '📎';
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-800">Select Documents</h3>
+            <button
+              onClick={() => setShowDocumentPicker(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Document List */}
+          <div className="flex-1 overflow-y-auto mb-6">
+            {selectedDocuments.length > 0 ? (
+              <div className="space-y-3">
+                {selectedDocuments.map((doc, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    <span className="text-2xl">{getDocumentIcon(documentTypes[index])}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 truncate">{doc.name}</p>
+                      <p className="text-sm text-gray-600">{documentTypes[index]} • {(doc.size / 1024).toFixed(1)} KB</p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveDocument(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p>No documents selected</p>
+                <p className="text-sm">Select up to 10 documents</p>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <label className="w-full py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition flex items-center justify-center gap-2 cursor-pointer">
+              <FileText className="w-5 h-5" />
+              Choose Documents
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.txt"
+                onChange={handleDocumentSelect}
+                className="hidden"
+              />
+            </label>
+            
+            <button
+              onClick={handleConfirmDocuments}
+              disabled={selectedDocuments.length === 0}
+              className="w-full py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Confirm Selection ({selectedDocuments.length}/10)
+            </button>
+          </div>
+
+          {/* Supported Formats */}
+          <div className="mt-4 p-3 bg-blue-50 rounded-xl">
+            <p className="text-xs text-blue-800 font-medium mb-1">Supported formats:</p>
+            <p className="text-xs text-blue-600">PDF, DOC, DOCX, TXT</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Location Picker Modal
+  const LocationPickerModal = () => {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedLocation, setSelectedLocation] = useState<any>(null);
+    const [recentLocations, setRecentLocations] = useState([
+      { id: 1, name: "SM City Cebu", address: "Cebu City, Philippines", type: "shopping" },
+      { id: 2, name: "IT Park", address: "Cebu City, Philippines", type: "business" },
+      { id: 3, name: "Ayala Center", address: "Cebu City, Philippines", type: "shopping" },
+      { id: 4, name: "Robinsons Fuente", address: "Cebu City, Philippines", type: "shopping" },
+    ]);
+    const [suggestedLocations, setSuggestedLocations] = useState([
+      { id: 5, name: "Cebu Business Park", address: "Cebu City, Philippines", type: "business" },
+      { id: 6, name: "Colon Street", address: "Cebu City, Philippines", type: "shopping" },
+      { id: 7, name: "Lahug", address: "Cebu City, Philippines", type: "residential" },
+      { id: 8, name: "Banilad", address: "Cebu City, Philippines", type: "residential" },
+    ]);
+
+    const handleLocationSelect = (location: any) => {
+      setSelectedLocation(location);
+      // Add to recent locations
+      if (!recentLocations.find(loc => loc.id === location.id)) {
+        setRecentLocations(prev => [location, ...prev.slice(0, 3)]);
+      }
+    };
+
+    const handleConfirmLocation = () => {
+      if (selectedLocation) {
+        showToastMessage(`Location selected: ${selectedLocation.name}`, "success");
+        setShowLocationPicker(false);
+        // In a real app, you would set this as the pickup or delivery location
+      } else {
+        showToastMessage("Please select a location", "error");
+      }
+    };
+
+    const handleUseCurrentLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              id: Date.now(),
+              name: "Current Location",
+              address: `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`,
+              type: "current",
+              coordinates: {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              }
+            };
+            handleLocationSelect(location);
+            showToastMessage("Current location detected!", "success");
+          },
+          (error) => {
+            showToastMessage("Unable to get current location", "error");
+          }
+        );
+      } else {
+        showToastMessage("Geolocation not supported", "error");
+      }
+    };
+
+    const filteredLocations = searchQuery.trim() 
+      ? [...recentLocations, ...suggestedLocations].filter(location =>
+          location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          location.address.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : [];
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-800">Select Location</h3>
+            <button
+              onClick={() => setShowLocationPicker(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative mb-6">
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search orders, riders, or locations..."
+              placeholder="Search for a location..."
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
             />
           </div>
+
+          {/* Current Location Button */}
           <button
-            onClick={() => setShowSearch(false)}
-            className="text-gray-400 hover:text-gray-600"
+            onClick={handleUseCurrentLocation}
+            className="w-full py-3 px-4 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition flex items-center justify-center gap-2 mb-6"
           >
-            <X className="w-5 h-5" />
+            <Navigation className="w-5 h-5" />
+            Use Current Location
+          </button>
+
+          {/* Location List */}
+          <div className="flex-1 overflow-y-auto">
+            {searchQuery.trim() ? (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-800">Search Results</h4>
+                {filteredLocations.length > 0 ? (
+                  filteredLocations.map((location) => (
+                    <button
+                      key={location.id}
+                      onClick={() => handleLocationSelect(location)}
+                      className={`w-full text-left p-3 rounded-xl transition ${
+                        selectedLocation?.id === location.id
+                          ? "bg-red-50 border-2 border-red-200"
+                          : "bg-gray-50 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          location.type === "shopping" ? "bg-blue-500" :
+                          location.type === "business" ? "bg-green-500" :
+                          location.type === "residential" ? "bg-purple-500" :
+                          "bg-orange-500"
+                        }`} />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-800">{location.name}</div>
+                          <div className="text-sm text-gray-600">{location.address}</div>
+                        </div>
+                        {selectedLocation?.id === location.id && (
+                          <Check className="w-5 h-5 text-red-600" />
+                        )}
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Map className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No locations found</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-3">Recent Locations</h4>
+                  <div className="space-y-2">
+                    {recentLocations.map((location) => (
+                      <button
+                        key={location.id}
+                        onClick={() => handleLocationSelect(location)}
+                        className={`w-full text-left p-3 rounded-xl transition ${
+                          selectedLocation?.id === location.id
+                            ? "bg-red-50 border-2 border-red-200"
+                            : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            location.type === "shopping" ? "bg-blue-500" :
+                            location.type === "business" ? "bg-green-500" :
+                            "bg-purple-500"
+                          }`} />
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-800">{location.name}</div>
+                            <div className="text-sm text-gray-600">{location.address}</div>
+                          </div>
+                          {selectedLocation?.id === location.id && (
+                            <Check className="w-5 h-5 text-red-600" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-3">Suggested Locations</h4>
+                  <div className="space-y-2">
+                    {suggestedLocations.map((location) => (
+                      <button
+                        key={location.id}
+                        onClick={() => handleLocationSelect(location)}
+                        className={`w-full text-left p-3 rounded-xl transition ${
+                          selectedLocation?.id === location.id
+                            ? "bg-red-50 border-2 border-red-200"
+                            : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            location.type === "shopping" ? "bg-blue-500" :
+                            location.type === "business" ? "bg-green-500" :
+                            "bg-purple-500"
+                          }`} />
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-800">{location.name}</div>
+                            <div className="text-sm text-gray-600">{location.address}</div>
+                          </div>
+                          {selectedLocation?.id === location.id && (
+                            <Check className="w-5 h-5 text-red-600" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Confirm Button */}
+          <button
+            onClick={handleConfirmLocation}
+            disabled={!selectedLocation}
+            className="w-full py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed mt-6"
+          >
+            {selectedLocation ? `Select ${selectedLocation.name}` : "Select a Location"}
           </button>
         </div>
-
-        <div className="space-y-3">
-          <h4 className="font-semibold text-gray-800">Recent Searches</h4>
-          {["SM City Cebu", "IT Park", "Ayala Center", "Robinsons Fuente"].map((search, index) => (
-            <button
-              key={index}
-              className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-            >
-              <span className="text-sm text-gray-700">{search}</span>
-            </button>
-          ))}
-        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Logout Confirmation Modal
   const LogoutConfirmationModal = () => (
@@ -2997,6 +4089,10 @@ export default function SugoApp() {
     return <SignupScreen />;
   }
 
+  if (currentScreen === "otp") {
+    return <OTPScreen />;
+  }
+
   return (
     <div className="max-w-md mx-auto bg-white shadow-2xl min-h-screen relative pb-20 flex flex-col">
       {userType === "rider" ? (
@@ -3023,6 +4119,11 @@ export default function SugoApp() {
       {showHelp && <HelpModal />}
       {showNotifications && <NotificationsModal />}
       {showSearch && <SearchModal />}
+      {showFilter && <FilterModal />}
+      {showShareModal && <ShareModal />}
+      {showImagePicker && <ImagePickerModal />}
+      {showDocumentPicker && <DocumentPickerModal />}
+      {showLocationPicker && <LocationPickerModal />}
       {showLogoutConfirm && <LogoutConfirmationModal />}
       {showDeleteAccount && <DeleteAccountModal />}
       {showAddPaymentMethod && <AddPaymentMethodModal />}
