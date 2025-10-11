@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Package,
   MapPin,
@@ -193,21 +193,61 @@ export default function SugoApp() {
   };
 
   const handleLogout = () => {
+    showToastMessage("Logged out successfully", "success");
     setCurrentScreen("login");
     setUserType("customer");
     setCurrentOrder(null);
     setCurrentDelivery(null);
     setShowLogoutConfirm(false);
-    showToastMessage("Logged out successfully", "success");
+    // Reset all modal states
+    setShowChat(false);
+    setShowCompleteConfirmation(false);
+    setShowRatingModal(false);
+    setShowPaymentModal(false);
+    setShowOrderTracking(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowNotifications(false);
+    setShowSearch(false);
+    setShowFilter(false);
+    setShowLocationPicker(false);
+    setShowImagePicker(false);
+    setShowDocumentPicker(false);
+    setShowShareModal(false);
+    setShowReportModal(false);
+    setShowEditProfile(false);
+    setShowChangePassword(false);
+    setShowDeleteAccount(false);
+    setShowAddPaymentMethod(false);
   };
 
   const handleDeleteAccount = () => {
+    showToastMessage("Account deleted successfully", "success");
     setCurrentScreen("login");
     setUserType("customer");
     setCurrentOrder(null);
     setCurrentDelivery(null);
     setShowDeleteAccount(false);
-    showToastMessage("Account deleted successfully", "success");
+    // Reset all modal states
+    setShowChat(false);
+    setShowCompleteConfirmation(false);
+    setShowRatingModal(false);
+    setShowPaymentModal(false);
+    setShowOrderTracking(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowNotifications(false);
+    setShowSearch(false);
+    setShowFilter(false);
+    setShowLocationPicker(false);
+    setShowImagePicker(false);
+    setShowDocumentPicker(false);
+    setShowShareModal(false);
+    setShowReportModal(false);
+    setShowEditProfile(false);
+    setShowChangePassword(false);
+    setShowLogoutConfirm(false);
+    setShowAddPaymentMethod(false);
   };
 
   const handleRatingSubmit = () => {
@@ -359,6 +399,7 @@ export default function SugoApp() {
           total: orderTotal.total,
         });
       }
+      setShowToast(false);
       setCurrentScreen("home");
     }, 2000);
   };
@@ -419,16 +460,24 @@ export default function SugoApp() {
       setCurrentOrder(null);
       setShowChat(false);
       setCurrentScreen("orders");
+      // Only show rating modal for customers
+      if (userType === "customer") {
       setShowRatingModal(true);
+      }
     }
     if (currentDelivery) {
       setCurrentDelivery(null);
       setShowChat(false);
       setCurrentScreen("deliveries");
-      setShowRatingModal(true);
+      // Riders don't need to rate customers
     }
     setShowCompleteConfirmation(false);
+    // Show appropriate success message based on user type
+    if (userType === "customer") {
     showToastMessage("Order completed successfully!", "success");
+    } else {
+      showToastMessage("Delivery completed successfully!", "success");
+    }
   };
 
   const [messages, setMessages] = useState([
@@ -457,8 +506,50 @@ export default function SugoApp() {
       time: "2:33 PM",
     },
   ]);
-  const [newMessage, setNewMessage] = useState("");
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const chatInputRef = useRef<HTMLInputElement | null>(null);
+  const messageRef = useRef<string>("");
+
+  // Memoized messages to prevent re-rendering on newMessage change
+  const memoizedCustomerMessages = useMemo(() => {
+    return messages.map((msg) => (
+      <div
+        key={msg.id}
+        className={`flex ${msg.sender === "customer" ? "justify-end" : "justify-start"}`}
+      >
+        <div
+          className={`max-w-xs ${
+            msg.sender === "customer"
+              ? "bg-red-600 text-white rounded-2xl rounded-br-sm px-4 py-2"
+              : "bg-white text-gray-800 rounded-2xl rounded-bl-sm shadow-sm px-4 py-2"
+          }`}
+        >
+          <p className="text-sm">{msg.text}</p>
+          <p className="text-xs opacity-70 mt-1">{msg.time}</p>
+        </div>
+      </div>
+    ));
+  }, [messages]);
+
+  const memoizedRiderMessages = useMemo(() => {
+    return messages.map((msg) => (
+      <div
+        key={msg.id}
+        className={`flex ${msg.sender === "rider" ? "justify-end" : "justify-start"}`}
+      >
+        <div
+          className={`max-w-xs ${
+            msg.sender === "rider"
+              ? "bg-red-600 text-white rounded-2xl rounded-br-sm px-4 py-2"
+              : "bg-white text-gray-800 rounded-2xl rounded-bl-sm shadow-sm px-4 py-2"
+          }`}
+        >
+          <p className="text-sm">{msg.text}</p>
+          <p className="text-xs opacity-70 mt-1">{msg.time}</p>
+        </div>
+      </div>
+    ));
+  }, [messages]);
 
   // Addresses state (customer)
   type SavedAddress = {
@@ -501,23 +592,72 @@ export default function SugoApp() {
     }
   }, [messages, showChat]);
 
-  const sendMessage = () => {
-    if (newMessage.trim()) {
-      setMessages([
-        ...messages,
-        {
+
+  // Chat Input Component with ref-based value management
+  const ChatInput = React.memo(() => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      messageRef.current = e.target.value;
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        if (messageRef.current.trim()) {
+          const newMsg = {
         id: messages.length + 1,
-          sender: "customer",
-        text: newMessage,
+            sender: userType,
+            text: messageRef.current.trim(),
           time: new Date().toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
           }),
-        },
-      ]);
-      setNewMessage("");
-    }
-  };
+          };
+          setMessages(prev => [...prev, newMsg]);
+          messageRef.current = "";
+          if (chatInputRef.current) {
+            chatInputRef.current.value = "";
+          }
+        }
+      }
+    };
+
+    const handleSendClick = () => {
+      if (messageRef.current.trim()) {
+        const newMsg = {
+          id: messages.length + 1,
+          sender: userType,
+          text: messageRef.current.trim(),
+          time: new Date().toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+        };
+        setMessages(prev => [...prev, newMsg]);
+        messageRef.current = "";
+        if (chatInputRef.current) {
+          chatInputRef.current.value = "";
+        }
+      }
+    };
+
+    return (
+      <div className="flex gap-2">
+        <input
+          ref={chatInputRef}
+          type="text"
+          onChange={handleInputChange}
+          onKeyPress={handleKeyPress}
+          placeholder="Type a message..."
+          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-full focus:border-red-500 focus:outline-none text-gray-800"
+        />
+        <button 
+          onClick={handleSendClick}
+          className="bg-red-600 text-white p-3 rounded-full hover:bg-red-700 transition"
+        >
+          <Send className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  });
 
   // Splash Screen
   const SplashScreen = () => (
@@ -536,7 +676,7 @@ export default function SugoApp() {
       {/* App Name */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-gray-800 mb-3">SUGO</h1>
-        <p className="text-gray-500 text-lg">Fast & Reliable Delivery</p>
+        <p className="text-gray-600 text-lg">Fast & Reliable Delivery</p>
       </div>
 
       {/* Simple Loading */}
@@ -573,7 +713,7 @@ export default function SugoApp() {
                 alt="Philippines Flag" 
                 className="w-6 h-4 mr-2"
               />
-              <ChevronRight className="w-4 h-4 text-gray-400" />
+              <ChevronRight className="w-4 h-4 text-gray-600" />
             </div>
             <input
               type="tel"
@@ -597,7 +737,10 @@ export default function SugoApp() {
 
         {/* Login Button */}
         <button 
-          onClick={() => setCurrentScreen("home")}
+          onClick={() => {
+            setShowToast(false);
+            setCurrentScreen("home");
+          }}
           className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition mb-6"
         >
           Log in
@@ -605,7 +748,7 @@ export default function SugoApp() {
 
         {/* Sign Up Link */}
         <div className="text-center">
-          <span className="text-gray-500 text-sm">Don't have an account? </span>
+          <span className="text-gray-600 text-sm">Don't have an account? </span>
           <button 
             onClick={() => setCurrentScreen("signup")}
             className="text-red-600 font-medium text-sm hover:underline"
@@ -626,13 +769,13 @@ export default function SugoApp() {
             onClick={() => setUserType("rider")}
             className={`flex-1 py-2 rounded-lg font-medium transition ${userType === "rider" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-600"}`}
           >
-            Worker
+            Rider
           </button>
         </div>
 
-        {userType === "rider" && (
+        {/* {userType === "rider" && (
           <div className="mt-4">
-            <p className="text-sm text-gray-500 mb-2">Select your service</p>
+            <p className="text-sm text-gray-600 mb-2">Select your service</p>
             <div className="grid grid-cols-4 gap-2">
               <button onClick={() => setWorkerService("delivery")} className={`p-2 rounded-lg border ${workerService === "delivery" ? "border-red-400 bg-red-50 text-red-600" : "border-gray-200 text-gray-600"}`}>
                 <Package className="w-5 h-5 mx-auto mb-1" />
@@ -652,7 +795,7 @@ export default function SugoApp() {
               </button>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
@@ -671,7 +814,7 @@ export default function SugoApp() {
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Create Account</h1>
-          <p className="text-gray-500 text-sm">Enter your details to sign up</p>
+          <p className="text-gray-600 text-sm">Enter your details to sign up</p>
         </div>
         
         {/* Full Name Input */}
@@ -692,7 +835,7 @@ export default function SugoApp() {
                 alt="Philippines Flag" 
                 className="w-6 h-4 mr-2"
               />
-              <ChevronRight className="w-4 h-4 text-gray-400" />
+              <ChevronRight className="w-4 h-4 text-gray-600" />
             </div>
             <input
               type="tel"
@@ -711,6 +854,36 @@ export default function SugoApp() {
           />
         </div>
 
+        {/* Vehicle Details - Only for Riders */}
+        {userType === "rider" && (
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Vehicle Details</h3>
+            <div className="space-y-3">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Vehicle Brand and Model (e.g., Honda Click 125 V3)"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:outline-none text-gray-800"
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Color (e.g., Red, Blue, Black)"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:outline-none text-gray-800"
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Plate Number (e.g., ABC 123)"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:outline-none text-gray-800"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Send OTP Button */}
         <button 
           onClick={() => {
@@ -724,7 +897,7 @@ export default function SugoApp() {
 
         {/* Back to Login Link */}
         <div className="text-center">
-          <span className="text-gray-500 text-sm">Already have an account? </span>
+          <span className="text-gray-600 text-sm">Already have an account? </span>
           <button 
             onClick={() => setCurrentScreen("login")}
             className="text-red-600 font-medium text-sm hover:underline"
@@ -745,13 +918,13 @@ export default function SugoApp() {
             onClick={() => setUserType("rider")}
             className={`flex-1 py-2 rounded-lg font-medium transition ${userType === "rider" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-600"}`}
           >
-            Worker
+            Rider
           </button>
         </div>
 
-        {userType === "rider" && (
+        {/* {userType === "rider" && (
           <div className="mt-4">
-            <p className="text-sm text-gray-500 mb-2">Select your service</p>
+            <p className="text-sm text-gray-600 mb-2">Select your service</p>
             <div className="grid grid-cols-4 gap-2">
               <button onClick={() => setWorkerService("delivery")} className={`p-2 rounded-lg border ${workerService === "delivery" ? "border-red-400 bg-red-50 text-red-600" : "border-gray-200 text-gray-600"}`}>
                 <Package className="w-5 h-5 mx-auto mb-1" />
@@ -771,7 +944,7 @@ export default function SugoApp() {
               </button>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
@@ -801,25 +974,43 @@ export default function SugoApp() {
       newOtp[index] = value;
       setOtpCode(newOtp);
 
-      // Auto-focus next input
+      // Auto-focus next input if value is entered
       if (value && index < 5) {
+        setTimeout(() => {
         const nextInput = document.getElementById(`otp-${index + 1}`);
         nextInput?.focus();
+        }, 0);
       }
     };
 
-    const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-      if (e.key === "Backspace" && !otpCode[index] && index > 0) {
+    const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+      if (e.key === "Backspace") {
+        // Always clear current input first
+        const newOtp = [...otpCode];
+        newOtp[index] = "";
+        setOtpCode(newOtp);
+        
+        // If not on first input, move to previous
+        if (index > 0) {
+          setTimeout(() => {
         const prevInput = document.getElementById(`otp-${index - 1}`);
-        prevInput?.focus();
+            if (prevInput) {
+              prevInput.focus();
+            }
+          }, 10);
+        }
       }
     };
+
 
     const handleVerifyOTP = () => {
       const otp = otpCode.join("");
       if (otp.length === 6) {
         showToastMessage("OTP verified successfully!", "success");
+        setTimeout(() => {
+          setShowToast(false);
         setCurrentScreen("home");
+        }, 2000);
       } else {
         showToastMessage("Please enter the complete OTP", "error");
       }
@@ -844,7 +1035,7 @@ export default function SugoApp() {
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Verify Phone Number</h1>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-600 text-sm">
               Enter the 6-digit code sent to<br />
               <span className="font-medium text-gray-800">{phoneNumber || "+63 915 123 6121"}</span>
             </p>
@@ -861,7 +1052,7 @@ export default function SugoApp() {
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
                   className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
                 />
               ))}
@@ -878,13 +1069,13 @@ export default function SugoApp() {
 
           {/* Resend OTP */}
           <div className="text-center mb-6">
-            <span className="text-gray-500 text-sm">Didn't receive the code? </span>
+            <span className="text-gray-600 text-sm">Didn't receive the code? </span>
             <button 
               onClick={handleResendOTP}
               disabled={timeLeft > 0}
               className={`font-medium text-sm ${
                 timeLeft > 0 
-                  ? "text-gray-400 cursor-not-allowed" 
+                  ? "text-gray-600 cursor-not-allowed" 
                   : "text-red-600 hover:underline"
               }`}
             >
@@ -896,7 +1087,7 @@ export default function SugoApp() {
           <div className="text-center">
             <button 
               onClick={() => setCurrentScreen("signup")}
-              className="text-gray-500 text-sm hover:text-gray-700 flex items-center justify-center gap-2"
+              className="text-gray-600 text-sm hover:text-gray-700 flex items-center justify-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Sign Up
@@ -905,7 +1096,7 @@ export default function SugoApp() {
 
           {/* Timer */}
           <div className="text-center mt-6">
-            <div className="inline-flex items-center gap-2 text-sm text-gray-500">
+            <div className="inline-flex items-center gap-2 text-sm text-gray-600">
               <Clock className="w-4 h-4" />
               <span>Code expires in {formatTime(timeLeft)}</span>
             </div>
@@ -1015,7 +1206,7 @@ export default function SugoApp() {
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition ${
                   star <= currentRating
                     ? "bg-yellow-100 text-yellow-600"
-                    : "bg-gray-100 text-gray-400"
+                    : "bg-gray-100 text-gray-600"
                 }`}
               >
                 <Star className={`w-6 h-6 ${star <= currentRating ? "fill-current" : ""}`} />
@@ -1061,7 +1252,7 @@ export default function SugoApp() {
           <h3 className="text-lg font-semibold text-gray-800">Payment Method</h3>
           <button
             onClick={() => setShowPaymentModal(false)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-600 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1088,25 +1279,25 @@ export default function SugoApp() {
                   checked={selectedPaymentMethod === method.id}
                   onChange={(e) => setSelectedPaymentMethod(e.target.value)}
                   disabled={!method.enabled}
-                  className="w-4 h-4 text-red-600"
+                  className="w-4 h-4 text-red-600 border-gray-300"
                 />
-                <method.icon className="w-5 h-5 text-gray-400" />
+                <method.icon className="w-5 h-5 text-gray-600" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{method.name}</span>
+                    <span className="font-medium text-gray-800">{method.name}</span>
                     {method.isDefault && (
                       <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
                         Default
                       </span>
                     )}
                     {!method.enabled && (
-                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
                         Coming Soon
                       </span>
                     )}
                   </div>
                   {method.details && (
-                    <p className="text-sm text-gray-500">{method.details.number}</p>
+                    <p className="text-sm text-gray-600">{method.details.number}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -1115,7 +1306,7 @@ export default function SugoApp() {
                       e.preventDefault();
                       setDefaultPaymentMethod(method.id);
                     }}
-                    className="text-gray-400 hover:text-red-600 transition"
+                    className="text-gray-600 hover:text-red-600 transition"
                     disabled={method.isDefault}
                   >
                     <Star className={`w-4 h-4 ${method.isDefault ? "fill-yellow-400 text-yellow-400" : ""}`} />
@@ -1126,7 +1317,7 @@ export default function SugoApp() {
                         e.preventDefault();
                         removePaymentMethod(method.id);
                       }}
-                      className="text-gray-400 hover:text-red-600 transition"
+                      className="text-gray-600 hover:text-red-600 transition"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1197,7 +1388,7 @@ export default function SugoApp() {
           <h3 className="text-lg font-semibold text-gray-800">Track Your Order</h3>
           <button
             onClick={() => setShowOrderTracking(false)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-600 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1236,25 +1427,14 @@ export default function SugoApp() {
                 </div>
                 <div className="flex-1">
                   <p className={`text-sm font-medium ${
-                    step.completed ? "text-gray-800" : "text-gray-500"
+                    step.completed ? "text-gray-800" : "text-gray-600"
                   }`}>
                     {step.title}
                   </p>
-                  <p className="text-xs text-gray-400">{step.time}</p>
+                  <p className="text-xs text-gray-600">{step.time}</p>
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="flex gap-3">
-            <button className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition">
-              <Phone className="w-4 h-4 inline mr-2" />
-              Call Rider
-            </button>
-            <button className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition">
-              <MessageCircle className="w-4 h-4 inline mr-2" />
-              Chat
-            </button>
           </div>
         </div>
       </div>
@@ -1269,7 +1449,7 @@ export default function SugoApp() {
           <h3 className="text-lg font-semibold text-gray-800">Settings</h3>
           <button
             onClick={() => setShowSettings(false)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-600 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1338,21 +1518,21 @@ export default function SugoApp() {
                 className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
               >
                 <span className="text-gray-700">Edit Profile</span>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
               <button
                 onClick={() => setShowChangePassword(true)}
                 className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
               >
                 <span className="text-gray-700">Change Password</span>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
               <button
                 onClick={() => setShowLogoutConfirm(true)}
                 className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
               >
                 <span className="text-gray-700">Logout</span>
-                <LogOut className="w-5 h-5 text-gray-400" />
+                <LogOut className="w-5 h-5 text-gray-600" />
               </button>
             </div>
           </div>
@@ -1365,15 +1545,15 @@ export default function SugoApp() {
                 className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
               >
                 <span className="text-gray-700">Help & Support</span>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
               <button className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                 <span className="text-gray-700">Privacy Policy</span>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
               <button className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                 <span className="text-gray-700">Terms of Service</span>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
             </div>
           </div>
@@ -1384,7 +1564,7 @@ export default function SugoApp() {
 
   // Toast Notification
   const ToastNotification = () => (
-    <div className={`fixed top-4 left-4 right-4 z-50 transform transition-all duration-300 ${
+    <div className={`max-w-md mx-auto fixed top-4 left-4 right-4 z-50 transform transition-all duration-300 ${
       showToast ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
     }`}>
       <div className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-red-500">
@@ -1406,7 +1586,7 @@ export default function SugoApp() {
           <h3 className="text-lg font-semibold text-gray-800">Help & Support</h3>
           <button
             onClick={() => setShowHelp(false)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-600 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1442,7 +1622,7 @@ export default function SugoApp() {
                   className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
                 >
                   <span className="text-sm text-gray-700">{faq}</span>
-                  <ChevronRight className="w-4 h-4 text-gray-400 float-right" />
+                  <ChevronRight className="w-4 h-4 text-gray-600 float-right" />
                 </button>
               ))}
             </div>
@@ -1470,7 +1650,7 @@ export default function SugoApp() {
           <h3 className="text-lg font-semibold text-gray-800">Notifications</h3>
           <button
             onClick={() => setShowNotifications(false)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-600 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1526,7 +1706,7 @@ export default function SugoApp() {
                   <p className="text-sm text-gray-600 mt-1">
                     {notification.message}
                   </p>
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-600 mt-2">
                     {notification.time}
                   </p>
                 </div>
@@ -1597,7 +1777,7 @@ export default function SugoApp() {
         <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <div className="flex-1 relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" />
               <input
                 type="text"
                 value={searchQuery}
@@ -1609,7 +1789,7 @@ export default function SugoApp() {
             </div>
             <button
               onClick={() => setShowSearch(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-600 hover:text-gray-600"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1648,7 +1828,7 @@ export default function SugoApp() {
                     </button>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-600">
                     <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                     <p>No results found for "{searchQuery}"</p>
                   </div>
@@ -1711,7 +1891,7 @@ export default function SugoApp() {
             <h3 className="text-xl font-bold text-gray-800">Filter Options</h3>
             <button
               onClick={() => setShowFilter(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-600 hover:text-gray-600"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1895,7 +2075,7 @@ export default function SugoApp() {
             <h3 className="text-xl font-bold text-gray-800">Share</h3>
             <button
               onClick={() => setShowShareModal(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-600 hover:text-gray-600"
             >
               <X className="w-5 h-5" />
             </button>
@@ -2016,7 +2196,7 @@ export default function SugoApp() {
             <h3 className="text-xl font-bold text-gray-800">Select Images</h3>
             <button
               onClick={() => setShowImagePicker(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-600 hover:text-gray-600"
             >
               <X className="w-5 h-5" />
             </button>
@@ -2043,7 +2223,7 @@ export default function SugoApp() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-600">
                 <Camera className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                 <p>No images selected</p>
                 <p className="text-sm">Select up to 5 images</p>
@@ -2151,7 +2331,7 @@ export default function SugoApp() {
             <h3 className="text-xl font-bold text-gray-800">Select Documents</h3>
             <button
               onClick={() => setShowDocumentPicker(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-600 hover:text-gray-600"
             >
               <X className="w-5 h-5" />
             </button>
@@ -2178,7 +2358,7 @@ export default function SugoApp() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-600">
                 <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                 <p>No documents selected</p>
                 <p className="text-sm">Select up to 10 documents</p>
@@ -2294,7 +2474,7 @@ export default function SugoApp() {
             <h3 className="text-xl font-bold text-gray-800">Select Location</h3>
             <button
               onClick={() => setShowLocationPicker(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-600 hover:text-gray-600"
             >
               <X className="w-5 h-5" />
             </button>
@@ -2302,7 +2482,7 @@ export default function SugoApp() {
 
           {/* Search Input */}
           <div className="relative mb-6">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" />
             <input
               type="text"
               value={searchQuery}
@@ -2355,7 +2535,7 @@ export default function SugoApp() {
                     </button>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-600">
                     <Map className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                     <p>No locations found</p>
                   </div>
@@ -2513,7 +2693,7 @@ export default function SugoApp() {
           <h3 className="text-lg font-semibold text-gray-800">Add Payment Method</h3>
           <button
             onClick={() => setShowAddPaymentMethod(false)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-600 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
           </button>
@@ -2601,7 +2781,7 @@ export default function SugoApp() {
               <input
                 type="checkbox"
                 id="setAsDefault"
-                className="w-4 h-4 text-red-600"
+                className="w-4 h-4 text-red-600 border-gray-300 rounded"
               />
               <label htmlFor="setAsDefault" className="text-sm text-gray-600">
                 Set as default payment method
@@ -2624,6 +2804,166 @@ export default function SugoApp() {
               Cancel
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Edit Profile Modal
+  const EditProfileModal = () => (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-800">Edit Profile</h3>
+          <button
+            onClick={() => setShowEditProfile(false)}
+            className="text-gray-600 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-600 mb-1 block">Full Name</label>
+            <input
+              type="text"
+              defaultValue={userType === "rider" ? "Mark Rider" : "Juan Dela Cruz"}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+            />
+          </div>
+          
+          <div>
+            <label className="text-sm text-gray-600 mb-1 block">Phone Number</label>
+            <input
+              type="tel"
+              defaultValue="+63 912 345 6789"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+            />
+          </div>
+          
+          <div>
+            <label className="text-sm text-gray-600 mb-1 block">Email Address</label>
+            <input
+              type="email"
+              defaultValue={userType === "rider" ? "mark.rider@email.com" : "juan@email.com"}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+            />
+          </div>
+
+          {userType === "rider" && (
+            <div>
+              <label className="text-sm text-gray-600 mb-3 block font-semibold">Vehicle Details</label>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Brand and Model</label>
+                  <input
+                    type="text"
+                    defaultValue="Honda Click 125 V3"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Color</label>
+                  <input
+                    type="text"
+                    defaultValue="Red"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Plate Number</label>
+                  <input
+                    type="text"
+                    defaultValue="ABC 123"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3 mt-6">
+          <button
+            onClick={() => {
+              showToastMessage("Profile updated successfully!", "success");
+              setShowEditProfile(false);
+            }}
+            className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition"
+          >
+            Save Changes
+          </button>
+          <button
+            onClick={() => setShowEditProfile(false)}
+            className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Change Password Modal
+  const ChangePasswordModal = () => (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-800">Change Password</h3>
+          <button
+            onClick={() => setShowChangePassword(false)}
+            className="text-gray-600 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-600 mb-1 block">Current Password</label>
+            <input
+              type="password"
+              placeholder="Enter current password"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+            />
+          </div>
+          
+          <div>
+            <label className="text-sm text-gray-600 mb-1 block">New Password</label>
+            <input
+              type="password"
+              placeholder="Enter new password"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+            />
+          </div>
+          
+          <div>
+            <label className="text-sm text-gray-600 mb-1 block">Confirm New Password</label>
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3 mt-6">
+          <button
+            onClick={() => {
+              showToastMessage("Password changed successfully!", "success");
+              setShowChangePassword(false);
+            }}
+            className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition"
+          >
+            Change Password
+          </button>
+          <button
+            onClick={() => setShowChangePassword(false)}
+            className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -2687,42 +3027,11 @@ export default function SugoApp() {
               
               {/* Chat Messages */}
               <div className="flex-1 overflow-y-auto space-y-3 mb-4 bg-gray-50 rounded-xl p-3 min-h-0">
-          {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.sender === "customer" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-xs ${
-                        msg.sender === "customer"
-                          ? "bg-red-600 text-white rounded-2xl rounded-br-sm px-4 py-2"
-                          : "bg-white text-gray-800 rounded-2xl rounded-bl-sm shadow-sm px-4 py-2"
-                      }`}
-                    >
-                  <p className="text-sm">{msg.text}</p>
-                      <p className="text-xs opacity-70 mt-1">{msg.time}</p>
-              </div>
-            </div>
-          ))}
+                {memoizedCustomerMessages}
         </div>
 
               {/* Chat Input */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="Type a message..."
-                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-full focus:border-red-500 focus:outline-none text-gray-800"
-            />
-            <button 
-              onClick={sendMessage}
-              className="bg-red-600 text-white p-3 rounded-full hover:bg-red-700 transition"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
+              <ChatInput />
         </div>
 
             {/* Action Buttons */}
@@ -2787,7 +3096,7 @@ export default function SugoApp() {
             <div className="bg-white/90 rounded-2xl p-4 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-gray-800">Services</h3>
-                <span className="text-xs text-gray-500">Choose one</span>
+                <span className="text-xs text-gray-600">Choose one</span>
               </div>
               <div className="grid grid-cols-4 gap-3">
                 <button
@@ -2800,31 +3109,31 @@ export default function SugoApp() {
                   <span className="text-[11px] text-gray-700 leading-tight">Delivery</span>
                 </button>
                 <button
-                  onClick={() => setSelectedService("plumbing")}
-                  className={`group flex flex-col items-center gap-2 ${selectedService === "plumbing" ? "opacity-100" : "opacity-80"}`}
+                  disabled
+                  className="group flex flex-col items-center gap-2 opacity-50 cursor-not-allowed"
                 >
-                  <div className={`w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center shadow-sm group-active:scale-95 transition ${selectedService === "plumbing" ? "ring-2 ring-blue-300" : ""}`}>
-                    <Wrench className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center shadow-sm">
+                    <Wrench className="w-6 h-6 text-gray-400" />
                   </div>
-                  <span className="text-[11px] text-gray-700 leading-tight">Plumbing</span>
+                  <span className="text-[11px] text-gray-500 leading-tight">Plumbing</span>
                 </button>
                 <button
-                  onClick={() => setSelectedService("aircon")}
-                  className={`group flex flex-col items-center gap-2 ${selectedService === "aircon" ? "opacity-100" : "opacity-80"}`}
+                  disabled
+                  className="group flex flex-col items-center gap-2 opacity-50 cursor-not-allowed"
                 >
-                  <div className={`w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center shadow-sm group-active:scale-95 transition ${selectedService === "aircon" ? "ring-2 ring-teal-300" : ""}`}>
-                    <Wind className="w-6 h-6 text-teal-600" />
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center shadow-sm">
+                    <Wind className="w-6 h-6 text-gray-400" />
                   </div>
-                  <span className="text-[11px] text-gray-700 leading-tight">Aircon</span>
+                  <span className="text-[11px] text-gray-500 leading-tight">Aircon</span>
                 </button>
                 <button
-                  onClick={() => setSelectedService("electrician")}
-                  className={`group flex flex-col items-center gap-2 ${selectedService === "electrician" ? "opacity-100" : "opacity-80"}`}
+                  disabled
+                  className="group flex flex-col items-center gap-2 opacity-50 cursor-not-allowed"
                 >
-                  <div className={`w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center shadow-sm group-active:scale-95 transition ${selectedService === "electrician" ? "ring-2 ring-amber-300" : ""}`}>
-                    <PlugZap className="w-6 h-6 text-amber-600" />
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center shadow-sm">
+                    <PlugZap className="w-6 h-6 text-gray-400" />
                   </div>
-                  <span className="text-[11px] text-gray-700 leading-tight">Electrician</span>
+                  <span className="text-[11px] text-gray-500 leading-tight">Electrician</span>
                 </button>
               </div>
             </div>
@@ -2930,9 +3239,9 @@ export default function SugoApp() {
           <div className="space-y-2">
                 {["Cash", "GCash", "QRPH"].map((method) => (
               <label key={method} className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-red-500 transition">
-                <input type="radio" name="payment" className="w-4 h-4 text-red-600" />
-                <CreditCard className="w-5 h-5 text-gray-400" />
-                <span className="font-medium">{method}</span>
+                <input type="radio" name="payment" className="w-4 h-4 text-red-600 border-gray-300" />
+                <CreditCard className="w-5 h-5 text-gray-600" />
+                <span className="font-medium text-gray-800">{method}</span>
               </label>
             ))}
           </div>
@@ -2944,7 +3253,7 @@ export default function SugoApp() {
               // Show payment modal first
               setShowPaymentModal(true);
             }}
-            className="w-full bg-red-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:bg-red-700 transition"
+            className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold text-base shadow-lg hover:bg-red-700 transition"
           >
             {selectedService === "delivery" ? `Book Delivery - ₱${orderTotal.total}.00` : `Book Service - ₱${orderTotal.total}.00`}
         </button>
@@ -2997,7 +3306,7 @@ export default function SugoApp() {
           <div key={order.id} className="bg-white rounded-2xl p-5 shadow-sm">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <p className="text-sm text-gray-500">Order ID</p>
+                <p className="text-sm text-gray-600">Order ID</p>
                 <p className="font-bold text-gray-800">{order.id}</p>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-600">
@@ -3020,8 +3329,8 @@ export default function SugoApp() {
                           {order.rating}
                         </span>
                       </div>
-                      <span className="text-xs text-gray-500">•</span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-600">•</span>
+                      <span className="text-xs text-gray-600">
                         {order.phone}
                       </span>
                     </div>
@@ -3048,7 +3357,7 @@ export default function SugoApp() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-400" />
+                <Clock className="w-4 h-4 text-gray-600" />
                 <span className="text-sm text-gray-600">{order.time}</span>
               </div>
             </div>
@@ -3083,32 +3392,38 @@ export default function SugoApp() {
         </div>
       </div>
 
-      <div className="p-4 space-y-3 -mt-4">
-        <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+      <div className="p-4 space-y-3">
+        <div 
+          onClick={() => setShowEditProfile(true)}
+          className="bg-white rounded-2xl p-5 shadow-sm space-y-4 cursor-pointer hover:bg-gray-50 transition"
+        >
+          <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-800">Personal Information</h3>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </div>
           
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <User className="w-5 h-5 text-gray-400" />
+              <User className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="text-xs text-gray-500">Name</p>
-                <p className="font-medium">Juan Dela Cruz</p>
+                <p className="text-xs text-gray-600">Name</p>
+                <p className="font-medium text-gray-800">Juan Dela Cruz</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Phone className="w-5 h-5 text-gray-400" />
+              <Phone className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="text-xs text-gray-500">Phone</p>
-                <p className="font-medium">+63 912 345 6789</p>
+                <p className="text-xs text-gray-600">Phone</p>
+                <p className="font-medium text-gray-800">+63 912 345 6789</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Mail className="w-5 h-5 text-gray-400" />
+              <Mail className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="text-xs text-gray-500">Email</p>
-                <p className="font-medium">juan@email.com</p>
+                <p className="text-xs text-gray-600">Email</p>
+                <p className="font-medium text-gray-800">juan@email.com</p>
               </div>
             </div>
           </div>
@@ -3126,7 +3441,7 @@ export default function SugoApp() {
           <div className="space-y-3">
             {addresses.map((addr) => (
               <div key={addr.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <MapPin className={`w-5 h-5 mt-0.5 ${addr.isDefault ? "text-red-600" : "text-gray-400"}`} />
+                <MapPin className={`w-5 h-5 mt-0.5 ${addr.isDefault ? "text-red-600" : "text-gray-600"}`} />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="font-medium text-gray-800">{addr.label}</p>
@@ -3136,10 +3451,10 @@ export default function SugoApp() {
                   </div>
                   <p className="text-sm text-gray-600">{addr.address}</p>
                   {addr.landmark && (
-                    <p className="text-xs text-gray-500 mt-1">Landmark: {addr.landmark}</p>
+                    <p className="text-xs text-gray-600 mt-1">Landmark: {addr.landmark}</p>
                   )}
                 </div>
-                <button onClick={() => setViewingAddress(addr)} className="text-gray-400 hover:text-red-600 transition">
+                <button onClick={() => setViewingAddress(addr)} className="text-gray-600 hover:text-red-600 transition">
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
@@ -3162,11 +3477,11 @@ export default function SugoApp() {
             {paymentMethods.map((method) => (
               <div key={method.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <method.icon className="w-5 h-5 text-gray-400" />
+                  <method.icon className="w-5 h-5 text-gray-600" />
                   <div>
-                    <span className="font-medium">{method.name}</span>
+                    <span className="font-medium text-gray-800">{method.name}</span>
                     {method.details && (
-                      <p className="text-xs text-gray-500">{method.details.number}</p>
+                      <p className="text-xs text-gray-600">{method.details.number}</p>
                     )}
                   </div>
                 </div>
@@ -3176,7 +3491,7 @@ export default function SugoApp() {
                   )}
                   <button
                     onClick={() => setDefaultPaymentMethod(method.id)}
-                    className="text-gray-400 hover:text-red-600 transition"
+                    className="text-gray-600 hover:text-red-600 transition"
                     disabled={method.isDefault}
                   >
                     <Star className={`w-4 h-4 ${method.isDefault ? "fill-yellow-400 text-yellow-400" : ""}`} />
@@ -3184,7 +3499,7 @@ export default function SugoApp() {
                   {!method.isDefault && method.id !== "cash" && (
                     <button
                       onClick={() => removePaymentMethod(method.id)}
-                      className="text-gray-400 hover:text-red-600 transition"
+                      className="text-gray-600 hover:text-red-600 transition"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -3196,29 +3511,21 @@ export default function SugoApp() {
         </div>
 
         <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <h3 className="font-semibold text-gray-800 mb-4">Account</h3>
+          <div className="space-y-3">
             <button
-              onClick={() => setShowSettings(true)}
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+              onClick={() => setShowChangePassword(true)}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
             >
-              <Settings className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium">Settings</span>
+              <span className="text-gray-700">Change Password</span>
+              <ChevronRight className="w-5 h-5 text-gray-600" />
             </button>
             <button
-              onClick={() => setShowHelp(true)}
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
             >
-              <HelpCircle className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium">Help</span>
-            </button>
-            <button className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-              <Share className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium">Share App</span>
-            </button>
-            <button className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-              <Heart className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium">Rate App</span>
+              <span className="text-gray-700">Logout</span>
+              <LogOut className="w-5 h-5 text-gray-600" />
             </button>
           </div>
         </div>
@@ -3226,11 +3533,11 @@ export default function SugoApp() {
 
       {/* Add Address Modal */}
       {isAddAddressOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Add Address</h3>
-              <button onClick={() => setIsAddAddressOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setIsAddAddressOpen(false)} className="text-gray-600 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -3239,7 +3546,7 @@ export default function SugoApp() {
               <textarea placeholder="Full address" rows={3} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800 placeholder-gray-400 resize-none" />
               <input type="text" placeholder="Landmark (optional)" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-gray-800 placeholder-gray-400" />
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input id="setDefaultAddress" type="checkbox" className="w-4 h-4" />
+                <input id="setDefaultAddress" type="checkbox" className="w-4 h-4 text-red-600 border-gray-300 rounded" />
                 Set as default
               </label>
             </div>
@@ -3281,7 +3588,7 @@ export default function SugoApp() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800">{viewingAddress.label}</h3>
-              <button onClick={() => setViewingAddress(null)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setViewingAddress(null)} className="text-gray-600 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -3291,7 +3598,7 @@ export default function SugoApp() {
                 <div>
                   <p className="text-sm text-gray-600">{viewingAddress.address}</p>
                   {viewingAddress.landmark && (
-                    <p className="text-xs text-gray-500 mt-1">Landmark: {viewingAddress.landmark}</p>
+                    <p className="text-xs text-gray-600 mt-1">Landmark: {viewingAddress.landmark}</p>
                   )}
                 </div>
               </div>
@@ -3377,42 +3684,11 @@ export default function SugoApp() {
               
               {/* Chat Messages */}
               <div className="flex-1 overflow-y-auto space-y-3 mb-4 bg-gray-50 rounded-xl p-3 min-h-0">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.sender === "rider" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-xs ${
-                        msg.sender === "rider"
-                          ? "bg-red-600 text-white rounded-2xl rounded-br-sm px-4 py-2"
-                          : "bg-white text-gray-800 rounded-2xl rounded-bl-sm shadow-sm px-4 py-2"
-                      }`}
-                    >
-                      <p className="text-sm">{msg.text}</p>
-                      <p className="text-xs opacity-70 mt-1">{msg.time}</p>
-                    </div>
-                  </div>
-                ))}
+                {memoizedRiderMessages}
               </div>
 
               {/* Chat Input */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-                  placeholder="Type a message..."
-                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-full focus:border-red-500 focus:outline-none text-gray-800"
-                />
-                <button
-                  onClick={sendMessage}
-                  className="bg-red-600 text-white p-3 rounded-full hover:bg-red-700 transition"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </div>
+              <ChatInput />
             </div>
 
             {/* Action Buttons */}
@@ -3504,7 +3780,7 @@ export default function SugoApp() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-800">Available {workerService === "delivery" ? "Orders" : "Jobs"}</h3>
-          <span className="text-sm text-gray-500">3 nearby</span>
+          <span className="text-sm text-gray-600">3 nearby</span>
         </div>
 
         <div className="space-y-3">
@@ -3540,12 +3816,12 @@ export default function SugoApp() {
               >
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="text-xs text-gray-500">Order ID</p>
+                  <p className="text-xs text-gray-600">Order ID</p>
                   <p className="font-bold text-gray-800">{order.id}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-bold text-red-600">{order.fee}</p>
-                  <p className="text-xs text-gray-500">{order.distance}</p>
+                  <p className="text-xs text-gray-600">{order.distance}</p>
                 </div>
               </div>
 
@@ -3564,7 +3840,7 @@ export default function SugoApp() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
+                    <Clock className="w-4 h-4 text-gray-600" />
                     <span className="text-sm text-gray-600">Est. {order.time}</span>
                   </div>
                 </div>
@@ -3577,11 +3853,11 @@ export default function SugoApp() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <MapPin className="w-4 h-4 text-gray-600" />
                     <span className="text-sm text-gray-600">Location: <span className="font-medium text-gray-800">Cebu City</span></span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
+                    <Clock className="w-4 h-4 text-gray-600" />
                     <span className="text-sm text-gray-600">Preferred: Today</span>
                   </div>
                 </div>
@@ -3666,7 +3942,7 @@ export default function SugoApp() {
           <div key={order.id} className="bg-white rounded-2xl p-5 shadow-sm">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <p className="text-sm text-gray-500">{workerService === "delivery" ? "Order ID" : "Job ID"}</p>
+                <p className="text-sm text-gray-600">{workerService === "delivery" ? "Order ID" : "Job ID"}</p>
                 <p className="font-bold text-gray-800">{order.id}</p>
               </div>
               <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-xs font-medium">
@@ -3707,7 +3983,7 @@ export default function SugoApp() {
                   <span className="text-sm text-gray-600">Job: <span className="font-medium text-gray-800">{workerService === "plumbing" ? "Plumbing" : workerService === "aircon" ? "Aircon Repair" : "Electrical"}</span></span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-gray-400" />
+                  <MapPin className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-600">Location: <span className="font-medium text-gray-800">Cebu City</span></span>
                 </div>
               </div>
@@ -3715,11 +3991,11 @@ export default function SugoApp() {
 
             <div className="flex justify-between items-center pt-3 border-t border-gray-100">
               <div className="text-right">
-                <p className="text-sm text-gray-500">{workerService === "delivery" ? "Earnings" : "Fee"}</p>
+                <p className="text-sm text-gray-600">{workerService === "delivery" ? "Earnings" : "Fee"}</p>
                 <p className="text-lg font-bold text-red-600">{order.fee}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-500">Rating</p>
+                <p className="text-sm text-gray-600">Rating</p>
                 <div className="flex items-center gap-1">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                   <span className="font-semibold text-gray-800">4.8</span>
@@ -3774,7 +4050,7 @@ export default function SugoApp() {
             >
               <div>
                 <p className="font-semibold text-gray-800">{day.date}</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600">
                   {day.deliveries} deliveries
                 </p>
               </div>
@@ -3810,7 +4086,7 @@ export default function SugoApp() {
         </div>
       </div>
 
-      <div className="p-4 space-y-3 -mt-4">
+      <div className="p-4 space-y-3">
         {/* Rider Stats */}
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <h3 className="font-semibold text-gray-800 mb-4">Rider Stats</h3>
@@ -3827,181 +4103,68 @@ export default function SugoApp() {
         </div>
 
         {/* Personal Information */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+        <div 
+          onClick={() => setShowEditProfile(true)}
+          className="bg-white rounded-2xl p-5 shadow-sm space-y-4 cursor-pointer hover:bg-gray-50 transition"
+        >
+          <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-800">Personal Information</h3>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </div>
           
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <User className="w-5 h-5 text-gray-400" />
+              <User className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="text-xs text-gray-500">Name</p>
-                <p className="font-medium">Mark Rider</p>
+                <p className="text-xs text-gray-600">Name</p>
+                <p className="font-medium text-gray-800">Mark Rider</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Phone className="w-5 h-5 text-gray-400" />
+              <Phone className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="text-xs text-gray-500">Phone</p>
-                <p className="font-medium">+63 912 345 6789</p>
+                <p className="text-xs text-gray-600">Phone</p>
+                <p className="font-medium text-gray-800">+63 912 345 6789</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Mail className="w-5 h-5 text-gray-400" />
+              <Mail className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="text-xs text-gray-500">Email</p>
-                <p className="font-medium">mark.rider@email.com</p>
+                <p className="text-xs text-gray-600">Email</p>
+                <p className="font-medium text-gray-800">mark.rider@email.com</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Package className="w-5 h-5 text-gray-400" />
+              <Package className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="text-xs text-gray-500">Vehicle</p>
-                <p className="font-medium">Motorcycle - ABC 1234</p>
+                <p className="text-xs text-gray-600">Vehicle</p>
+                <p className="font-medium text-gray-800">Honda Click 125 V3 (Red) - ABC 123</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Service Areas */}
+
+        {/* Account */}
         <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Service Areas</h3>
-            <button 
-              onClick={() => setIsAddAddressOpen(true)}
-              className="text-red-600 font-medium text-sm flex items-center gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add Area
-            </button>
-          </div>
+          <h3 className="font-semibold text-gray-800 mb-4">Account</h3>
           <div className="space-y-3">
-            {addresses.map((addr) => (
-              <div key={addr.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <MapPin className={`w-5 h-5 mt-0.5 ${addr.isDefault ? "text-red-600" : "text-gray-400"}`} />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-gray-800">{addr.label}</p>
-                    {addr.isDefault && (
-                      <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium">Primary</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600">{addr.address}</p>
-                  {addr.landmark && (
-                    <p className="text-xs text-gray-500 mt-1">Landmark: {addr.landmark}</p>
-                  )}
-                </div>
-                <button onClick={() => setViewingAddress(addr)} className="text-gray-400 hover:text-red-600 transition">
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Payment Methods */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Payment Methods</h3>
             <button 
-              onClick={() => setShowAddPaymentMethod(true)}
-              className="text-red-600 font-medium text-sm flex items-center gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add Method
-            </button>
-          </div>
-          <div className="space-y-2">
-            {paymentMethods.map((method) => (
-              <div key={method.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <method.icon className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <span className="font-medium">{method.name}</span>
-                    {method.details && (
-                      <p className="text-xs text-gray-500">{method.details.number}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {method.isDefault && (
-                    <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">Default</span>
-                  )}
-                  <button
-                    onClick={() => setDefaultPaymentMethod(method.id)}
-                    className="text-gray-400 hover:text-red-600 transition"
-                    disabled={method.isDefault}
-                  >
-                    <Star className={`w-4 h-4 ${method.isDefault ? "fill-yellow-400 text-yellow-400" : ""}`} />
-                  </button>
-                  {!method.isDefault && method.id !== "cash" && (
-                    <button
-                      onClick={() => removePaymentMethod(method.id)}
-                      className="text-gray-400 hover:text-red-600 transition"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Account Settings */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-800 mb-4">Account Settings</h3>
-          <div className="space-y-2">
-            <button 
-              onClick={toggleOnlineStatus}
+              onClick={() => setShowChangePassword(true)}
               className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
             >
-              <span className="font-medium text-gray-500">Online/Offline Status</span>
-              <div className={`w-12 h-6 rounded-full relative ${isOnline ? "bg-green-500" : "bg-gray-300"}`}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition ${isOnline ? "right-1" : "left-1"}`}></div>
-              </div>
+              <span className="text-gray-700">Change Password</span>
+              <ChevronRight className="w-5 h-5 text-gray-600" />
             </button>
             <button 
-              onClick={() => setShowSettings(true)}
+              onClick={() => setShowLogoutConfirm(true)}
               className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
             >
-              <span className="font-medium text-gray-500">Payment Settings</span>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
-            <button className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-              <span className="font-medium text-gray-500">Documents</span>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setShowSettings(true)}
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-            >
-              <Settings className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium">Settings</span>
-            </button>
-            <button
-              onClick={() => setShowHelp(true)}
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-            >
-              <HelpCircle className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium">Help</span>
-            </button>
-            <button className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-              <Share className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium">Share App</span>
-            </button>
-            <button className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-              <Heart className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium">Rate App</span>
+              <span className="text-gray-700">Logout</span>
+              <LogOut className="w-5 h-5 text-gray-600" />
             </button>
           </div>
         </div>
@@ -4017,28 +4180,28 @@ export default function SugoApp() {
           <div className="flex justify-around items-center max-w-md mx-auto">
             <button
               onClick={() => setCurrentScreen("home")}
-              className={`flex flex-col items-center gap-1 transition ${currentScreen === "home" ? "text-red-600" : "text-gray-400"}`}
+              className={`flex flex-col items-center gap-1 transition ${currentScreen === "home" ? "text-red-600" : "text-gray-600"}`}
             >
               <Home className="w-6 h-6" />
               <span className="text-xs font-medium">Home</span>
             </button>
             <button
               onClick={() => setCurrentScreen("deliveries")}
-              className={`flex flex-col items-center gap-1 transition ${currentScreen === "deliveries" ? "text-red-600" : "text-gray-400"}`}
+              className={`flex flex-col items-center gap-1 transition ${currentScreen === "deliveries" ? "text-red-600" : "text-gray-600"}`}
             >
               <Package className="w-6 h-6" />
               <span className="text-xs font-medium">{workerService === "delivery" ? "Deliveries" : "Jobs"}</span>
             </button>
-            <button
+            {/* <button
               onClick={() => setCurrentScreen("earnings")}
-              className={`flex flex-col items-center gap-1 transition ${currentScreen === "earnings" ? "text-red-600" : "text-gray-400"}`}
+              className={`flex flex-col items-center gap-1 transition ${currentScreen === "earnings" ? "text-red-600" : "text-gray-600"}`}
             >
               <CreditCard className="w-6 h-6" />
               <span className="text-xs font-medium">Earnings</span>
-            </button>
+            </button> */}
             <button
               onClick={() => setCurrentScreen("profile")}
-              className={`flex flex-col items-center gap-1 transition ${currentScreen === "profile" ? "text-red-600" : "text-gray-400"}`}
+              className={`flex flex-col items-center gap-1 transition ${currentScreen === "profile" ? "text-red-600" : "text-gray-600"}`}
             >
               <User className="w-6 h-6" />
               <span className="text-xs font-medium">Profile</span>
@@ -4053,21 +4216,21 @@ export default function SugoApp() {
         <div className="flex justify-around items-center max-w-md mx-auto">
           <button
             onClick={() => setCurrentScreen("home")}
-            className={`flex flex-col items-center gap-1 transition ${currentScreen === "home" ? "text-red-600" : "text-gray-400"}`}
+            className={`flex flex-col items-center gap-1 transition ${currentScreen === "home" ? "text-red-600" : "text-gray-600"}`}
           >
             <Home className="w-6 h-6" />
             <span className="text-xs font-medium">Home</span>
           </button>
           <button
             onClick={() => setCurrentScreen("orders")}
-            className={`flex flex-col items-center gap-1 transition ${currentScreen === "orders" ? "text-red-600" : "text-gray-400"}`}
+            className={`flex flex-col items-center gap-1 transition ${currentScreen === "orders" ? "text-red-600" : "text-gray-600"}`}
           >
             <Package className="w-6 h-6" />
             <span className="text-xs font-medium">Orders</span>
           </button>
           <button
             onClick={() => setCurrentScreen("profile")}
-            className={`flex flex-col items-center gap-1 transition ${currentScreen === "profile" ? "text-red-600" : "text-gray-400"}`}
+            className={`flex flex-col items-center gap-1 transition ${currentScreen === "profile" ? "text-red-600" : "text-gray-600"}`}
           >
             <User className="w-6 h-6" />
             <span className="text-xs font-medium">Profile</span>
@@ -4099,7 +4262,7 @@ export default function SugoApp() {
         <>
           {currentScreen === "home" && <RiderDashboard />}
           {currentScreen === "deliveries" && <RiderActiveDeliveries />}
-          {currentScreen === "earnings" && <RiderEarnings />}
+          {/* {currentScreen === "earnings" && <RiderEarnings />} */}
           {currentScreen === "profile" && <RiderProfile />}
         </>
       ) : (
@@ -4127,6 +4290,8 @@ export default function SugoApp() {
       {showLogoutConfirm && <LogoutConfirmationModal />}
       {showDeleteAccount && <DeleteAccountModal />}
       {showAddPaymentMethod && <AddPaymentMethodModal />}
+      {showEditProfile && <EditProfileModal />}
+      {showChangePassword && <ChangePasswordModal />}
       {showToast && <ToastNotification />}
     </div>
   );
