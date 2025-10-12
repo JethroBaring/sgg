@@ -3049,13 +3049,13 @@ export default function SugoApp() {
                   <span>Call Rider</span>
                 </button>
               </div>
-              <button
+              {/* <button
                 onClick={() => setShowCompleteConfirmation(true)}
                 className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center space-x-2"
               >
                 <CheckCircle className="w-5 h-5" />
                 <span>Mark as Delivered</span>
-              </button>
+              </button> */}
             </div>
       </div>
     </div>
