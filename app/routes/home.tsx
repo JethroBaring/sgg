@@ -180,7 +180,7 @@ export default function SugoApp() {
     name: "Juan Dela Cruz",
     phone: "+63 912 345 6789",
     email: "juan@email.com",
-    avatar: null,
+    avatar: "/rider.jpg",
     rating: 4.8,
     totalOrders: 47,
     joinDate: "2023-01-15",
@@ -1407,8 +1407,12 @@ export default function SugoApp() {
         <div className="space-y-4">
           <div className="bg-red-50 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <Package className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center overflow-hidden">
+                {userProfile.avatar ? (
+                  <img src={userProfile.avatar} alt="Rider avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <Package className="w-5 h-5 text-red-600" />
+                )}
               </div>
               <div>
                 <p className="font-semibold text-gray-800">Order #{currentOrder?.id || "ORD-001"}</p>
@@ -3029,9 +3033,13 @@ export default function SugoApp() {
                 <h2 className="text-2xl font-bold">Current Order</h2>
                 <p className="text-red-100">Order #{currentOrder.id} - In Progress</p>
               </div>
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Package className="w-5 h-5" />
-            </div>
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+                {userProfile.avatar ? (
+                  <img src={userProfile.avatar} alt="Rider avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <Package className="w-5 h-5" />
+                )}
+              </div>
           </div>
         </div>
           <div className="p-6 flex flex-col gap-4 flex-1 overflow-hidden min-h-0">
@@ -3371,9 +3379,13 @@ export default function SugoApp() {
             {order.rider && (
               <div className="bg-red-50 rounded-xl p-4 mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-red-600" />
-                </div>
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center overflow-hidden">
+                    {userProfile.avatar ? (
+                      <img src={userProfile.avatar} alt="Rider avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5 text-red-600" />
+                    )}
+                  </div>
                   <div>
                     <p className="font-semibold text-gray-800">{order.rider}</p>
                     <div className="flex items-center gap-2">
@@ -4131,8 +4143,12 @@ export default function SugoApp() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-b-3xl">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
-            <User className="w-10 h-10" />
+          <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+            {userProfile.avatar ? (
+              <img src={userProfile.avatar} alt="Rider avatar" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-10 h-10" />
+            )}
           </div>
           <div>
             <h2 className="text-xl font-bold">Mark Rider</h2>
