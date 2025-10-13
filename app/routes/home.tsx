@@ -82,6 +82,8 @@ export default function SugoApp() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showCallOptions, setShowCallOptions] = useState(false);
+  const [callNumber, setCallNumber] = useState<string>("");
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showOfflineMode, setShowOfflineMode] = useState(false);
@@ -217,6 +219,8 @@ export default function SugoApp() {
     setShowReportModal(false);
     setShowEditProfile(false);
     setShowChangePassword(false);
+    setShowCallOptions(false);
+    setCallNumber("");
     setShowDeleteAccount(false);
     setShowAddPaymentMethod(false);
   };
@@ -247,6 +251,8 @@ export default function SugoApp() {
     setShowEditProfile(false);
     setShowChangePassword(false);
     setShowLogoutConfirm(false);
+    setShowCallOptions(false);
+    setCallNumber("");
     setShowAddPaymentMethod(false);
   };
 
@@ -387,6 +393,16 @@ export default function SugoApp() {
           paymentMethod: selectedPaymentMethod,
           total: orderTotal.total,
         });
+        // Simulate delivery completion after 3 seconds for customer and show rating
+        if (userType === "customer") {
+          setTimeout(() => {
+            setCurrentOrder(null);
+            setShowChat(false);
+            setCurrentScreen("orders");
+            setShowRatingModal(true);
+            showToastMessage("Order completed successfully!", "success");
+          }, 3000);
+        }
       } else {
         setCurrentOrder({
           id: `SRV-${Date.now()}`,
@@ -460,16 +476,16 @@ export default function SugoApp() {
       setCurrentOrder(null);
       setShowChat(false);
       setCurrentScreen("orders");
-      // Only show rating modal for customers
+      // For customers: immediately show mandatory rating modal
       if (userType === "customer") {
-      setShowRatingModal(true);
+        setShowRatingModal(true);
       }
     }
     if (currentDelivery) {
       setCurrentDelivery(null);
       setShowChat(false);
       setCurrentScreen("deliveries");
-      // Riders don't need to rate customers
+      // Riders don't rate customers
     }
     setShowCompleteConfirmation(false);
     // Show appropriate success message based on user type
@@ -521,7 +537,7 @@ export default function SugoApp() {
           className={`max-w-xs ${
             msg.sender === "customer"
               ? "bg-red-600 text-white rounded-2xl rounded-br-sm px-4 py-2"
-              : "bg-white text-gray-800 rounded-2xl rounded-bl-sm shadow-sm px-4 py-2"
+              : "bg-gray-100 text-gray-800 rounded-2xl rounded-bl-sm px-4 py-2"
           }`}
         >
           <p className="text-sm">{msg.text}</p>
@@ -541,7 +557,7 @@ export default function SugoApp() {
           className={`max-w-xs ${
             msg.sender === "rider"
               ? "bg-red-600 text-white rounded-2xl rounded-br-sm px-4 py-2"
-              : "bg-white text-gray-800 rounded-2xl rounded-bl-sm shadow-sm px-4 py-2"
+              : "bg-gray-100 text-gray-800 rounded-2xl rounded-bl-sm px-4 py-2"
           }`}
         >
           <p className="text-sm">{msg.text}</p>
@@ -1232,12 +1248,6 @@ export default function SugoApp() {
             >
               Submit Rating
             </button>
-            <button
-              onClick={() => setShowRatingModal(false)}
-              className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
-            >
-              Skip
-            </button>
           </div>
         </div>
       </div>
@@ -1573,6 +1583,44 @@ export default function SugoApp() {
             <Check className="w-4 h-4 text-red-600" />
           </div>
           <p className="text-gray-800 font-medium">{toastMessage}</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Call Options Modal (Customer)
+  const CallOptionsModal = () => (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-800">Call Rider</h3>
+          <button onClick={() => setShowCallOptions(false)} className="text-gray-600 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              setShowCallOptions(false);
+              showToastMessage("Opening Viber...", "info");
+              // window.open could be used with viber:// style deep link in a real app
+            }}
+            className="w-full py-3 rounded-xl bg-purple-50 text-purple-700 font-semibold hover:bg-purple-100 transition flex items-center justify-center gap-2"
+          >
+            <Phone className="w-5 h-5" />
+            Call via Viber
+          </button>
+          <button
+            onClick={() => {
+              setShowCallOptions(false);
+              showToastMessage(`Calling ${callNumber || "rider"}...`, "info");
+            }}
+            className="w-full py-3 rounded-xl bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-2"
+          >
+            <Phone className="w-5 h-5" />
+            Call via Phone
+          </button>
         </div>
       </div>
     </div>
@@ -3044,10 +3092,16 @@ export default function SugoApp() {
                   <Navigation className="w-4 h-4" />
                   <span>Track Order</span>
                 </button>
-                <button className="bg-gray-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-gray-700 transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center space-x-2">
-                  <Phone className="w-4 h-4" />
-                  <span>Call Rider</span>
-                </button>
+            <button 
+              onClick={() => {
+                setCallNumber(currentOrder?.contact || "+63 000 000 0000");
+                setShowCallOptions(true);
+              }}
+              className="bg-gray-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-gray-700 transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center space-x-2"
+            >
+              <Phone className="w-4 h-4" />
+              <span>Call Rider</span>
+            </button>
               </div>
               {/* <button
                 onClick={() => setShowCompleteConfirmation(true)}
@@ -3694,7 +3748,13 @@ export default function SugoApp() {
             {/* Action Buttons */}
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <button className="bg-green-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center space-x-2">
+                <button 
+                  onClick={() => {
+                    setCallNumber(currentDelivery?.phone || "+63 000 000 0000");
+                    setShowCallOptions(true);
+                  }}
+                  className="bg-green-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center space-x-2"
+                >
                   <Phone className="w-4 h-4" />
                   <span>Call</span>
                 </button>
@@ -4276,6 +4336,7 @@ export default function SugoApp() {
       {isLoading && <LoadingScreen />}
       {showCompleteConfirmation && <CompleteConfirmationDialog />}
       {showRatingModal && <RatingModal />}
+      {showCallOptions && <CallOptionsModal />}
       {showPaymentModal && <PaymentModal />}
       {showOrderTracking && <OrderTrackingModal />}
       {showSettings && <SettingsModal />}
