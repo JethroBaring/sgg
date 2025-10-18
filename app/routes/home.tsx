@@ -48,6 +48,12 @@ import {
   ThumbsDown,
   Flag,
   MoreVertical,
+  Ticket,
+  Droplet,
+  Zap,
+  Paintbrush,
+  Sparkles,
+  Hammer,
 } from "lucide-react";
 
 export default function SugoApp() {
@@ -61,7 +67,7 @@ export default function SugoApp() {
   const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [currentDelivery, setCurrentDelivery] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<
-    "delivery" | "plumbing" | "aircon" | "electrician"
+    "delivery" | "plumbing" | "aircon" | "electrician" | "tickets"
   >("delivery");
   const [workerService, setWorkerService] = useState<
     "delivery" | "plumbing" | "aircon" | "electrician"
@@ -211,6 +217,9 @@ export default function SugoApp() {
     setShowHelp(false);
     setShowNotifications(false);
     setShowSearch(false);
+    setIsCreateTicketOpen(false);
+    setIsTicketDetailsOpen(false);
+    setIsTicketChatOpen(false);
     setShowFilter(false);
     setShowLocationPicker(false);
     setShowImagePicker(false);
@@ -496,6 +505,81 @@ export default function SugoApp() {
     }
   };
 
+  // Service ticket helper functions
+  const handleCreateTicket = (ticketData: Omit<ServiceTicket, 'id' | 'createdAt' | 'unreadCount' | 'status'>) => {
+    const newTicket: ServiceTicket = {
+      ...ticketData,
+      status: "open",
+      id: `TKT-${Date.now()}`,
+      createdAt: new Date().toLocaleString(),
+      unreadCount: 0,
+    };
+    setServiceTickets(prev => [newTicket, ...prev]);
+    showToastMessage("Service ticket created successfully!", "success");
+    setIsCreateTicketOpen(false);
+  };
+
+  const handleViewTicketDetails = (ticket: ServiceTicket) => {
+    setSelectedTicket(ticket);
+    setIsTicketDetailsOpen(true);
+  };
+
+  const handleOpenTicketChat = (ticket: ServiceTicket) => {
+    setSelectedTicket(ticket);
+    setIsTicketChatOpen(true);
+  };
+
+  const getServiceIcon = (serviceType: ServiceTicket["serviceType"]) => {
+    switch (serviceType) {
+      case "plumbing":
+        return <Droplet className="w-5 h-5 text-blue-600" />;
+      case "electrician":
+        return <Zap className="w-5 h-5 text-yellow-600" />;
+      case "painting":
+        return <Paintbrush className="w-5 h-5 text-purple-600" />;
+      case "cleaning":
+        return <Sparkles className="w-5 h-5 text-green-600" />;
+      case "aircon":
+        return <Wind className="w-5 h-5 text-cyan-600" />;
+      case "carpentry":
+        return <Hammer className="w-5 h-5 text-orange-600" />;
+      default:
+        return <Wrench className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getPriorityColor = (priority: ServiceTicket["priority"]) => {
+    switch (priority) {
+      case "urgent":
+        return "bg-red-100 text-red-600";
+      case "high":
+        return "bg-orange-100 text-orange-600";
+      case "medium":
+        return "bg-yellow-100 text-yellow-600";
+      case "low":
+        return "bg-green-100 text-green-600";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
+
+  const getStatusColor = (status: ServiceTicket["status"]) => {
+    switch (status) {
+      case "open":
+        return "bg-blue-100 text-blue-600";
+      case "assigned":
+        return "bg-purple-100 text-purple-600";
+      case "in-progress":
+        return "bg-orange-100 text-orange-600";
+      case "resolved":
+        return "bg-green-100 text-green-600";
+      case "closed":
+        return "bg-gray-100 text-gray-600";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
+
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -592,6 +676,56 @@ export default function SugoApp() {
   ]);
   const [isAddAddressOpen, setIsAddAddressOpen] = useState(false);
   const [viewingAddress, setViewingAddress] = useState<SavedAddress | null>(null);
+
+  // Service Tickets state (customer)
+  type ServiceTicket = {
+    id: string;
+    serviceType: "plumbing" | "electrician" | "cleaning" | "aircon" | "painting" | "carpentry" | "other";
+    title: string;
+    description: string;
+    status: "open" | "assigned" | "in-progress" | "resolved" | "closed";
+    priority: "low" | "medium" | "high" | "urgent";
+    createdAt: string;
+    assignedTo?: string;
+    assignedToName?: string;
+    location: string;
+    images?: string[];
+    lastMessage?: string;
+    unreadCount: number;
+  };
+
+  const [serviceTickets, setServiceTickets] = useState<ServiceTicket[]>([
+    {
+      id: "TKT-001",
+      serviceType: "plumbing",
+      title: "Leaking kitchen sink",
+      description: "Kitchen sink has been leaking for 2 days. Water dripping from under the sink.",
+      status: "open",
+      priority: "high",
+      createdAt: "2024-10-18 09:30",
+      location: "Cebu City, Banilad",
+      unreadCount: 0,
+    },
+    {
+      id: "TKT-002",
+      serviceType: "electrician",
+      title: "Power outlet not working",
+      description: "Living room power outlet suddenly stopped working. Need electrician to check.",
+      status: "assigned",
+      priority: "medium",
+      createdAt: "2024-10-18 10:15",
+      assignedTo: "PRO-001",
+      assignedToName: "Roberto Electrician",
+      location: "Mandaue City, Centro",
+      unreadCount: 2,
+      lastMessage: "I'll be there in 30 minutes",
+    },
+  ]);
+
+  const [isCreateTicketOpen, setIsCreateTicketOpen] = useState(false);
+  const [isTicketDetailsOpen, setIsTicketDetailsOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<ServiceTicket | null>(null);
+  const [isTicketChatOpen, setIsTicketChatOpen] = useState(false);
 
   useEffect(() => {
     if (currentScreen === "splash") {
@@ -3021,6 +3155,334 @@ export default function SugoApp() {
     </div>
   );
 
+  // Create Service Ticket Modal
+  const CreateTicketModal = () => {
+    const [formData, setFormData] = useState({
+      serviceType: "plumbing" as ServiceTicket["serviceType"],
+      title: "",
+      description: "",
+      priority: "medium" as ServiceTicket["priority"],
+      location: "",
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!formData.title || !formData.description || !formData.location) {
+        showToastMessage("Please fill in all required fields", "error");
+        return;
+      }
+      handleCreateTicket(formData);
+      setFormData({
+        serviceType: "plumbing",
+        title: "",
+        description: "",
+        priority: "medium",
+        location: "",
+      });
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-800">Create Service Ticket</h3>
+            <button
+              onClick={() => setIsCreateTicketOpen(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-sm text-gray-600 block mb-2">Service Type</label>
+              <select
+                value={formData.serviceType}
+                onChange={(e) => setFormData(prev => ({ ...prev, serviceType: e.target.value as ServiceTicket["serviceType"] }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-800"
+              >
+                <option value="plumbing">Plumbing</option>
+                <option value="electrician">Electrician</option>
+                <option value="cleaning">Cleaning</option>
+                <option value="aircon">Air Conditioning</option>
+                <option value="painting">Painting</option>
+                <option value="carpentry">Carpentry</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-600 block mb-2">Title *</label>
+              <input
+                type="text"
+                placeholder="Brief description of the issue"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-800 placeholder-gray-400"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-600 block mb-2">Description *</label>
+              <textarea
+                placeholder="Detailed description of the problem"
+                rows={4}
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-800 placeholder-gray-400 resize-none"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-600 block mb-2">Priority</label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as ServiceTicket["priority"] }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-800"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-600 block mb-2">Location *</label>
+              <input
+                type="text"
+                placeholder="Service address"
+                value={formData.location}
+                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-800 placeholder-gray-400"
+                required
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsCreateTicketOpen(false)}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+              >
+                Create Ticket
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // Ticket Details Modal
+  const TicketDetailsModal = () => {
+    if (!selectedTicket) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                {getServiceIcon(selectedTicket.serviceType)}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">{selectedTicket.title}</h3>
+                <p className="text-sm text-gray-600">{selectedTicket.id}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsTicketDetailsOpen(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedTicket.priority)}`}>
+                {selectedTicket.priority.toUpperCase()}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedTicket.status)}`}>
+                {selectedTicket.status.toUpperCase()}
+              </span>
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-600 block mb-1">Description</label>
+              <p className="text-gray-800">{selectedTicket.description}</p>
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-600 block mb-1">Location</label>
+              <p className="text-gray-800">{selectedTicket.location}</p>
+            </div>
+
+            {selectedTicket.assignedToName && (
+              <div>
+                <label className="text-sm text-gray-600 block mb-1">Assigned To</label>
+                <p className="text-gray-800">{selectedTicket.assignedToName}</p>
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm text-gray-600 block mb-1">Created</label>
+              <p className="text-gray-800">{selectedTicket.createdAt}</p>
+            </div>
+
+            {selectedTicket.lastMessage && (
+              <div className="bg-blue-50 rounded-lg p-3">
+                <label className="text-sm text-gray-600 block mb-1">Last Message</label>
+                <p className="text-gray-800">{selectedTicket.lastMessage}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => {
+                  setIsTicketDetailsOpen(false);
+                  handleOpenTicketChat(selectedTicket);
+                }}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Open Chat
+                {selectedTicket.unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    {selectedTicket.unreadCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setIsTicketDetailsOpen(false)}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Ticket Chat Modal
+  const TicketChatModal = () => {
+    if (!selectedTicket) return null;
+
+    const [chatMessages, setChatMessages] = useState([
+      {
+        id: 1,
+        sender: "customer",
+        message: "Hello, I need help with my plumbing issue",
+        time: "10:30 AM",
+      },
+      {
+        id: 2,
+        sender: "admin",
+        message: "Hi! I've received your ticket. A plumber will be assigned to you shortly.",
+        time: "10:32 AM",
+      },
+      {
+        id: 3,
+        sender: "provider",
+        message: "Hello! I'm Roberto, your assigned plumber. I'll be there in 30 minutes.",
+        time: "10:35 AM",
+      },
+    ]);
+
+    const [newMessage, setNewMessage] = useState("");
+
+    const handleSendMessage = () => {
+      if (!newMessage.trim()) return;
+      
+      const message = {
+        id: chatMessages.length + 1,
+        sender: "customer",
+        message: newMessage,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      
+      setChatMessages(prev => [...prev, message]);
+      setNewMessage("");
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl max-w-md w-full h-[80vh] flex flex-col shadow-xl">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                {getServiceIcon(selectedTicket.serviceType)}
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800">{selectedTicket.title}</h3>
+                <p className="text-sm text-gray-600">{selectedTicket.id}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsTicketChatOpen(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.sender === "customer" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[80%] px-4 py-2 rounded-2xl ${
+                    msg.sender === "customer"
+                      ? "bg-blue-600 text-white"
+                      : msg.sender === "admin"
+                      ? "bg-gray-600 text-white"
+                      : "bg-green-600 text-white"
+                  }`}
+                >
+                  <p className="text-sm">{msg.message}</p>
+                  <p className="text-xs opacity-70 mt-1">{msg.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="p-4 border-t border-gray-200">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-800 placeholder-gray-400"
+              />
+              <button
+                onClick={handleSendMessage}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Customer Dashboard
   const CustomerDashboard = () => {
     // If there's a current order, show chat details
@@ -3171,13 +3633,13 @@ export default function SugoApp() {
                   <span className="text-[11px] text-gray-700 leading-tight">Delivery</span>
                 </button>
                 <button
-                  disabled
-                  className="group flex flex-col items-center gap-2 opacity-50 cursor-not-allowed"
+                  onClick={() => setSelectedService("tickets")}
+                  className={`group flex flex-col items-center gap-2 ${selectedService === "tickets" ? "opacity-100" : "opacity-80"}`}
                 >
-                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center shadow-sm">
-                    <Wrench className="w-6 h-6 text-gray-400" />
+                  <div className={`w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center shadow-sm group-active:scale-95 transition ${selectedService === "tickets" ? "ring-2 ring-blue-300" : ""}`}>
+                    <Ticket className="w-6 h-6 text-blue-600" />
                   </div>
-                  <span className="text-[11px] text-gray-500 leading-tight">Plumbing</span>
+                  <span className="text-[11px] text-gray-700 leading-tight">Services</span>
                 </button>
                 <button
                   disabled
@@ -3258,6 +3720,69 @@ export default function SugoApp() {
                   <input type="tel" placeholder="09XX XXX XXXX" className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 placeholder-gray-400" />
               </div>
             </div>
+            </div>
+          ) : selectedService === "tickets" ? (
+            <div className="space-y-4">
+              {/* Service Tickets List */}
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-800">My Service Tickets</h3>
+                  <button
+                    onClick={() => setIsCreateTicketOpen(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    New Ticket
+                  </button>
+                </div>
+                
+                {serviceTickets.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Ticket className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600 font-medium">No service tickets yet</p>
+                    <p className="text-sm text-gray-500 mt-1">Create your first service request</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {serviceTickets.map((ticket) => (
+                      <div
+                        key={ticket.id}
+                        className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 transition cursor-pointer"
+                        onClick={() => handleViewTicketDetails(ticket)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                              {getServiceIcon(ticket.serviceType)}
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-gray-800">{ticket.title}</h4>
+                              <p className="text-sm text-gray-600">{ticket.id}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
+                              {ticket.priority.toUpperCase()}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
+                              {ticket.status}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{ticket.description}</p>
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>{ticket.createdAt}</span>
+                          {ticket.unreadCount > 0 && (
+                            <span className="bg-red-500 text-white px-2 py-1 rounded-full">
+                              {ticket.unreadCount} new
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="bg-white rounded-2xl p-5 shadow-sm">
@@ -4369,6 +4894,9 @@ export default function SugoApp() {
       {showAddPaymentMethod && <AddPaymentMethodModal />}
       {showEditProfile && <EditProfileModal />}
       {showChangePassword && <ChangePasswordModal />}
+      {isCreateTicketOpen && <CreateTicketModal />}
+      {isTicketDetailsOpen && <TicketDetailsModal />}
+      {isTicketChatOpen && <TicketChatModal />}
       {showToast && <ToastNotification />}
     </div>
   );
